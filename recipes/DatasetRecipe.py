@@ -1,6 +1,6 @@
 from transformers import PreTrainedTokenizer
-from typing import Dict, Union, List
-from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode
+from typing import Dict, Union, List, Callable
+from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk
 import re
 
 
@@ -9,16 +9,25 @@ import re
 # https://www.reddit.com/r/LocalLLaMA/comments/15hz7gl/my_finetuning_based_on_llama27bchathf_model/
 
 class DatasetRecipe:
-    dataset_load_kwargs: Dict = {}
     """
-    preprocess_function should be a function that takes as input a Dict and returns a Dict containing:
+    Kwargs to give to the "load_dataset" function from "datasets" module
+    """
+    dataset_load_kwargs: Dict = {}
+
+    """
+    preprocess_function should be a function that returns a Dict containing:
     - "prompts": str
     - "labels": str
-    so that they can be coming into "text"
+    so that they can be combined into:
+    - "text": str
+    to be used for training.
     """
-    preprocess_function = lambda x, examples: x
+    preprocess_function: Callable[[Dict[str, str], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]], Dict[str, str]] = lambda x, examples: x
 
     def _get_examples(examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> str:
+        """
+        Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
+        """
         if examples is None: return ""
         return "Examples:\n" + "\n".join([ex for ex in examples["text"]]) + "\nEnd of Examples\n"
 
@@ -31,6 +40,9 @@ class DatasetRecipe:
                     n_example: int=0,
                     eos_token: str="</s>",
                     **kwargs) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+        """
+        1
+        """
         def create_text(sample): sample["text"] = sample["prompts"] + sample["labels"]; return sample
         def clear_labels(sample): sample["labels"] = ""; return sample
         def restore_labels(sample, idx): sample["labels"] = _labels[idx]; return sample
@@ -40,8 +52,8 @@ class DatasetRecipe:
         #       (right now it is the first n_examples rows of the dataset)
         #       in dataset there is probably a function that could enable such behavior     
         ##################################################################
-
-        dataset = load_dataset(dataset_path, download_mode=DownloadMode.REUSE_CACHE_IF_EXISTS, **{**cls.dataset_load_kwargs, **kwargs})
+        try: dataset = load_from_disk(dataset_path, **{**cls.dataset_load_kwargs, **kwargs})
+        except: dataset = load_dataset(dataset_path, download_mode=DownloadMode.REUSE_CACHE_IF_EXISTS, **{**cls.dataset_load_kwargs, **kwargs})
         # Split dataset if requested
         if split is not None: dataset = dataset[split]
         # If requested create a dataset of examples for prompting

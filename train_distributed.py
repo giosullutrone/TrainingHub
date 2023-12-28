@@ -8,6 +8,20 @@ from utils.DispatcherRecipe import ModelEnum, DispatcherRecipe
 from utils.ProxySystemPromptTuning import ProxySystemPromptTuning
 from utils import fit_response_template_tokens, fit_system_template_tokens
 from torch.utils.data import random_split
+from timeit import default_timer as timer
+from recipes.TokenizerRecipe import LLama2TokenizerRecipe, MistralTokenizerRecipe
+from recipes.ModelRecipe import LLama2ModelRecipe, MistralModelRecipe
+from pynvml import *
+
+
+def print_gpu_utilization():
+    nvmlInit()
+    handle = nvmlDeviceGetHandleByIndex(0)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU 0 memory occupied: {info.used//1024**2} MB.")
+    handle = nvmlDeviceGetHandleByIndex(1)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU 1 memory occupied: {info.used//1024**2} MB.")
 
 
 transformers.set_seed(42)
@@ -23,24 +37,21 @@ if __name__ == "__main__":
         output_dir="./results_modified",
         num_train_epochs=1,
         gradient_accumulation_steps=1,
-        optim="paged_adamw_32bit",
+        optim="adamw_torch",
         learning_rate=3e-4,
         weight_decay=0.001,
-        fp16=False,
+        fp16=True,
         bf16=False,
         max_grad_norm=0.3,
-        max_steps=1000,
+        max_steps=12,
         warmup_ratio=0.03,
         group_by_length=True,
-        lr_scheduler_type="cosine",
-        evaluation_strategy="steps",
-        logging_steps=0.25,
-        eval_steps=0.25,
-        save_steps=0.25,
-        load_best_model_at_end=True,
+        lr_scheduler_type="linear",
+        logging_steps=1,
         save_total_limit=1,
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=2
+        # per_device_eval_batch_size=2,
+        # tf32=True
     )
     # --------------------------------------------------------------------------
 
@@ -48,7 +59,7 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
     # Here we define the base model we want to train.
     # Note: can be both huggingface's path or a local path
-    model_name = "mistralai/Mistral-7B-Instruct-v0.1"
+    model_name = "/leonardo_work/IscrC_TABLEM/models/Mistral-7B-Instruct-v0.1"
     # The class of the model (Needed because we will use a dispatcher in this example, check next code blocks)
     model_class = ModelEnum.MISTRAL
     # An output path where to save the final model
@@ -56,7 +67,7 @@ if __name__ == "__main__":
     # the best. To solve this in the "TrainingArguments" we specified "load_best_model_at_end=True"
     # So that at the end of the procedure the best weights (calculated using loss on validation set) are
     # loaded and then saved.
-    output_path = "models/mathqa/mistral/base"
+    output_path = "/leonardo_work/IscrC_TABLEM/models/mathqa/mistral/LoRa"
     # --------------------------------------------------------------------------
 
 
@@ -65,7 +76,7 @@ if __name__ == "__main__":
     # For the fine-tuning of this example we are going to train the LoRa adapter
     # and not the whole model. Here we initialize the adapter's configuration used
     # in the following section.
-    peft_config = None
+    peft_config = None # QLoRaPeftRecipe.get_peft_config()
     # --------------------------------------------------------------------------
 
 
@@ -73,16 +84,18 @@ if __name__ == "__main__":
     # ### Create tokenizer and model
     # Here we use the dispatcher to get all the recipes needed by specifying the model class using "ModelEnum"
     # Tip: you can also directly import the recipes that you want from "cookbook.recipes"
-    tokenizer_recipe, model_recipe, quantization_recipe = DispatcherRecipe.get_recipes(model_class)
+    # tokenizer_recipe, model_recipe, quantization_recipe = DispatcherRecipe.get_recipes(model_class)
+    tokenizer_recipe = MistralTokenizerRecipe
+    model_recipe = MistralModelRecipe
     # We also initialize the quantization config to use to reduce memory usage
-    quantization_config = None
+    quantization_config = None # quantization_recipe.get_quantization_config()
     # We also give the "peft_path_or_config" to apply the "peft" adapter to the model
     # Note: during training, instead of providing the config class, we provide the path to the adapter's folder
-    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config)
-    tokenizer = tokenizer_recipe.get_tokenizer(model_name)
+    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config, use_cache=True, max_position_embeddings=512)
+    tokenizer = tokenizer_recipe.get_tokenizer(model_name, model_max_length=512, use_fast=False)
     # --------------------------------------------------------------------------
-    
-    
+
+
     # --------------------------------------------------------------------------
     # ### Dataset
     # We load the datasets from huggingface using the specific recipe
@@ -91,8 +104,9 @@ if __name__ == "__main__":
     #
     # Here we are creating a train and validation datasets with zero-shot (n_example=0) and 
     # adapted to the template for the specific model (preprocess_function=model_recipe.get_preprocess_function())
-    dataset_train = MathqaValueDatasetRecipe.get_dataset("math_qa", split="train", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
-    dataset_val = MathqaValueDatasetRecipe.get_dataset("math_qa", split="validation", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
+    # TODO: make it so you can pre-sample x values before mapping to save on time
+    dataset_train = MathqaValueDatasetRecipe.get_dataset("/leonardo_work/IscrC_TABLEM/datasets/math_qa", split="train", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
+    dataset_val = None # MathqaValueDatasetRecipe.get_dataset("/leonardo_work/IscrC_TABLEM/datasets/math_qa", split="validation", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
     # If you don't have a validation set available split the training set:
     # ### Example:
     # dataset = GSM8KDatasetRecipe.get_dataset("gsm8k", split="train").train_test_split(test_size=0.15)
@@ -145,10 +159,11 @@ if __name__ == "__main__":
         dataset_validation=dataset_val,
         response_template=response_template
     )
+
     # Note: we can also specify other kwargs as they will be given to the underlying "SFTTrainer.__init__"
     # For more info on the available parameters, check out the documentation for "trl.SFTTrainer"
     # TODO: Add dataset_text_field="text" to default values
-    fine_tuner.train(output_path, training_arguments=training_arguments, dataset_text_field="text")
+    fine_tuner.train(output_path, training_arguments=training_arguments, dataset_text_field="text", max_seq_length=512)
     
     # We set everything to None to free up memory before the creation of new models
     fine_tuner = None

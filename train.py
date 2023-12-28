@@ -1,7 +1,7 @@
 import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
-from FineTuner import FineTuner
+from finetuner import FineTuner
 from recipes.DatasetRecipe import MathqaValueDatasetRecipe
 from recipes.PeftRecipe import QLoRaPeftRecipe, PromptTuningPeftRecipe, PromptTuning16PeftRecipe
 from utils.DispatcherRecipe import ModelEnum, DispatcherRecipe

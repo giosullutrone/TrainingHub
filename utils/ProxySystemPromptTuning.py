@@ -7,6 +7,17 @@ from functools import partial
 from transformers import PreTrainedTokenizer
 from utils import get_template_token_position
 
+from pynvml import *
+
+
+def print_gpu_utilization():
+    nvmlInit()
+    handle = nvmlDeviceGetHandleByIndex(0)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU 0 memory occupied: {info.used//1024**2} MB.")
+    handle = nvmlDeviceGetHandleByIndex(1)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU 1 memory occupied: {info.used//1024**2} MB.")
 
 # TODO: Add source of the code and version (forward function should be from huggingface models)
 

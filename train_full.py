@@ -78,8 +78,8 @@ if __name__ == "__main__":
     quantization_config = None
     # We also give the "peft_path_or_config" to apply the "peft" adapter to the model
     # Note: during training, instead of providing the config class, we provide the path to the adapter's folder
-    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config, cache_dir="../models")
-    tokenizer = tokenizer_recipe.get_tokenizer(model_name, cache_dir="../models")
+    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config, cache_dir="../models", use_cache=True, max_position_embeddings=512)
+    tokenizer = tokenizer_recipe.get_tokenizer(model_name, cache_dir="../models", model_max_length=512)
     # --------------------------------------------------------------------------
     
     
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Note: we can also specify other kwargs as they will be given to the underlying "SFTTrainer.__init__"
     # For more info on the available parameters, check out the documentation for "trl.SFTTrainer"
     # TODO: Add dataset_text_field="text" to default values
-    fine_tuner.train(output_path, training_arguments=training_arguments, dataset_text_field="text")
+    fine_tuner.train(output_path, training_arguments=training_arguments, dataset_text_field="text", max_seq_length=512)
     
     print_gpu_utilization()
 

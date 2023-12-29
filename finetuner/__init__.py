@@ -40,5 +40,5 @@ class FineTuner:
                             # dataset_batch_size=1,
                             **kwargs)
         trainer.train()
-        # trainer.save_state()
-        # trainer.save_model(output_dir)
+        trainer.save_state()
+        trainer.save_model(output_dir)

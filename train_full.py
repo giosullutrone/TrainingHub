@@ -6,7 +6,7 @@ from recipes.DatasetRecipe import MathqaValueDatasetRecipe
 from recipes.PeftRecipe import QLoRaPeftRecipe, PromptTuningPeftRecipe, PromptTuning16PeftRecipe
 from utils.DispatcherRecipe import ModelEnum, DispatcherRecipe
 from utils.ProxySystemPromptTuning import ProxySystemPromptTuning
-from utils import fit_response_template_tokens, fit_system_template_tokens
+from utils import fit_response_template_tokens, fit_system_template_tokens, print_gpu_utilization
 from torch.utils.data import random_split
 
 
@@ -23,11 +23,11 @@ if __name__ == "__main__":
         output_dir="./results_modified",
         num_train_epochs=1,
         gradient_accumulation_steps=1,
-        optim="paged_adamw_32bit",
+        optim="adamw_torch",
         learning_rate=3e-4,
         weight_decay=0.001,
-        fp16=False,
-        bf16=False,
+        fp16=True,
+        tf32=True,
         max_grad_norm=0.3,
         max_steps=1000,
         warmup_ratio=0.03,
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     # model = ProxySystemPromptTuning.add_proxy(model, system_template=system_template)
     # --------------------------------------------------------------------------
 
+    print_gpu_utilization()
 
     # --------------------------------------------------------------------------
     # ### FineTuner creation and training
@@ -150,6 +151,8 @@ if __name__ == "__main__":
     # TODO: Add dataset_text_field="text" to default values
     fine_tuner.train(output_path, training_arguments=training_arguments, dataset_text_field="text")
     
+    print_gpu_utilization()
+
     # We set everything to None to free up memory before the creation of new models
     fine_tuner = None
     model = None

@@ -8,14 +8,11 @@ from tqdm import tqdm
 from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo
 
 
-def print_gpu_utilization() -> None:
+def print_gpu_utilization(index: int=0) -> None:
     nvmlInit()
-    handle = nvmlDeviceGetHandleByIndex(0)
+    handle = nvmlDeviceGetHandleByIndex(index)
     info = nvmlDeviceGetMemoryInfo(handle)
-    print(f"GPU 0 memory occupied: {info.used//1024**2} MB.")
-    handle = nvmlDeviceGetHandleByIndex(1)
-    info = nvmlDeviceGetMemoryInfo(handle)
-    print(f"GPU 1 memory occupied: {info.used//1024**2} MB.")
+    print(f"GPU {index} memory occupied: {info.used//1024**2} MB.")
 
 
 def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Union[int, None]:

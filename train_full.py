@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # the best. To solve this in the "TrainingArguments" we specified "load_best_model_at_end=True"
     # So that at the end of the procedure the best weights (calculated using loss on validation set) are
     # loaded and then saved.
-    output_path = "models/mathqa/mistral/base"
+    output_path = "../models/mathqa/mistral/base"
     # --------------------------------------------------------------------------
 
 
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     quantization_config = None
     # We also give the "peft_path_or_config" to apply the "peft" adapter to the model
     # Note: during training, instead of providing the config class, we provide the path to the adapter's folder
-    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config)
-    tokenizer = tokenizer_recipe.get_tokenizer(model_name)
+    model = model_recipe.get_model(model_name, quantization_config=quantization_config, peft_path_or_config=peft_config, cache_dir="../models")
+    tokenizer = tokenizer_recipe.get_tokenizer(model_name, cache_dir="../models")
     # --------------------------------------------------------------------------
     
     
@@ -91,8 +91,8 @@ if __name__ == "__main__":
     #
     # Here we are creating a train and validation datasets with zero-shot (n_example=0) and 
     # adapted to the template for the specific model (preprocess_function=model_recipe.get_preprocess_function())
-    dataset_train = MathqaValueDatasetRecipe.get_dataset("math_qa", split="train", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
-    dataset_val = MathqaValueDatasetRecipe.get_dataset("math_qa", split="validation", preprocess_function=model_recipe.get_preprocess_function(), n_example=0)
+    dataset_train = MathqaValueDatasetRecipe.get_dataset("math_qa", split="train", preprocess_function=model_recipe.get_preprocess_function(), n_example=0, cache_dir="../datasets")
+    dataset_val = MathqaValueDatasetRecipe.get_dataset("math_qa", split="validation", preprocess_function=model_recipe.get_preprocess_function(), n_example=0, cache_dir="../datasets")
     # If you don't have a validation set available split the training set:
     # ### Example:
     # dataset = GSM8KDatasetRecipe.get_dataset("gsm8k", split="train").train_test_split(test_size=0.15)

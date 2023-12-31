@@ -205,8 +205,8 @@ if __name__ == "__main__":
         dataset_validation=dataset_val,
         response_template=response_template
     )
-    # Note: we can also specify other kwargs as they will be given to the underlying "SFTTrainer.__init__"
-    # For more info on the available parameters, check out the documentation for "trl.SFTTrainer"
+    # Note: we also specify other kwargs as they will be given to the underlying `SFTTrainer` init.
+    # For more info on the available parameters, check out the documentation for trl's SFTTrainer.
     finetuner.train(output_path, training_arguments=training_arguments, **config.finetuner_arguments)
 
     # We set everything to None to free up memory before the creation of new models.

@@ -190,7 +190,7 @@ if __name__ == "__main__":
     # 
     # This should make the tuning better mimic the performances obtained for the typical prompt engineering done by hand
     if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
-        system_template = fit_system_template_tokens(dataset_train, model_recipe, tokenizer)
+        system_template = fit_system_template_tokens(dataset_train, model_template_recipe, tokenizer)
         model = SystemTuning.add_proxy(model, system_template=system_template)
     # --------------------------------------------------------------------------
 

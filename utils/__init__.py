@@ -5,14 +5,6 @@ from recipes.ModelRecipe import ModelRecipe
 from recipes.DatasetRecipe import DatasetRecipe
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from tqdm import tqdm
-from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo
-
-
-def print_gpu_utilization(index: int=0) -> None:
-    nvmlInit()
-    handle = nvmlDeviceGetHandleByIndex(index)
-    info = nvmlDeviceGetMemoryInfo(handle)
-    print(f"GPU {index} memory occupied: {info.used//1024**2} MB.")
 
 
 def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Union[int, None]:

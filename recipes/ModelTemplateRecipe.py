@@ -6,7 +6,7 @@ class ModelTemplateRecipe:
     Note: there is no need to put <s> or </s>, it will be taken care of by the tokenizer
     """
     @classmethod
-    def get_preprocess_function(cls) -> Callable[..., Dict]:
+    def get_postprocess_function(cls) -> Callable[..., Dict]:
         raise NotImplementedError()
     
     @classmethod
@@ -20,8 +20,8 @@ class ModelTemplateRecipe:
 
 class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
     @classmethod
-    def get_preprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"text": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] {sample["labels"]}'}
+    def get_postprocess_function(cls) -> Callable[..., Dict]:
+        return lambda sample: {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
     
     @classmethod
     def get_response_template(cls) -> str:
@@ -34,8 +34,8 @@ class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
 
 class MistralModelTemplateRecipe(ModelTemplateRecipe):
     @classmethod
-    def get_preprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"text": f'[INST] \n{sample["prompts"]} [/INST] {sample["labels"]}'}
+    def get_postprocess_function(cls) -> Callable[..., Dict]:
+        return lambda sample: {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
     
     @classmethod
     def get_response_template(cls) -> str:
@@ -48,8 +48,8 @@ class MistralModelTemplateRecipe(ModelTemplateRecipe):
 
 class NeuralModelTemplateRecipe(ModelTemplateRecipe):
     @classmethod
-    def get_preprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"text": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n{sample["labels"]}'}
+    def get_postprocess_function(cls) -> Callable[..., Dict]:
+        return lambda sample: {"prompts": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n'}
     
     @classmethod
     def get_response_template(cls) -> str:

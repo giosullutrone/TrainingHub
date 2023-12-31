@@ -36,9 +36,9 @@ class FineTuner:
                             eval_dataset=self.dataset_validation,
                             data_collator=data_collator,
                             args=training_arguments,
+                            dataset_text_field="text",
                             # TODO: check connection between this and prefetch
                             # dataset_batch_size=1,
                             **kwargs)
         trainer.train()
-        trainer.save_state()
         trainer.save_model(output_dir)

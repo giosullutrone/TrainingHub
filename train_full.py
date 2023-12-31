@@ -23,7 +23,7 @@ if __name__ == "__main__":
         output_dir="./results_modified",
         num_train_epochs=1,
         gradient_accumulation_steps=1,
-        optim="adamw_torch",
+        optim="paged_adamw_32bit",
         learning_rate=3e-4,
         weight_decay=0.001,
         fp16=True,

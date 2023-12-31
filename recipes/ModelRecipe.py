@@ -19,9 +19,9 @@ class ModelRecipe:
         return model
     
     @classmethod
-    def get_preprocess_function(cls) -> Dict:
+    def get_postprocess_function(cls) -> Dict:
         assert cls.model_template_recipe is not None, "Model template not defined for the model requested"
-        return cls.model_template_recipe.get_preprocess_function()
+        return cls.model_template_recipe.get_postprocess_function()
     
     @classmethod
     def get_response_template(cls) -> str:

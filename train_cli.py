@@ -173,7 +173,7 @@ if __name__ == "__main__":
     # Here we are using an util function that given the specific dataset recipe and model recipe, finds the best response template
     # for the dataset selected and model selected.
     # [It uses the model recipe's template if it is available else the dataset recipe one and finds the best token ids to use for compatibility]
-    if config.completion_only: response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_recipe, tokenizer)
+    if config.completion_only: response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer)
     else: response_template = None
     # --------------------------------------------------------------------------
 

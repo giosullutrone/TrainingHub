@@ -1,6 +1,6 @@
 from transformers import TrainingArguments
-from recipes.DatasetRecipe import DatasetRecipe, MathqaValueDatasetRecipe
-from recipes.ModelRecipe import ModelRecipe, MistralModelRecipe
+from recipes.DatasetDispatcher import DatasetRecipe, MathqaValueDatasetRecipe
+from recipes.ModelDispatcher import ModelRecipe, MistralModelRecipe
 from recipes.TokenizerRecipe import TokenizerRecipe, MistralTokenizerRecipe
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe

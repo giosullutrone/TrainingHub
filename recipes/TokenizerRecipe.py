@@ -1,38 +1,38 @@
 from transformers import AutoTokenizer, PreTrainedTokenizer
-from typing import Dict
+from typing import Dict, Union
 
 
 class TokenizerRecipe:
-    tokenizer_init_kwargs: Dict = {}
-    tokenizer_kwargs: Dict = {}
+    TOKENIZER_LOAD: Union[Dict, None] = None
+    TOKENIZER_CONFIG: Union[Dict, None] = None
 
-    @classmethod
-    def get_tokenizer(cls, tokenizer_path: str, **kwargs) -> PreTrainedTokenizer:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, trust_remote_code=True, **{**cls.tokenizer_init_kwargs, **kwargs})
-        if tokenizer.pad_token is None: tokenizer.pad_token = "[PAD]"
-        if tokenizer.eos_token is None: tokenizer.eos_token = "</s>"
-        if tokenizer.bos_token is None: tokenizer.bos_token = "<s>"
-        if tokenizer.unk_token is None: tokenizer.unk_token = "<unk>"
-        for x in cls.tokenizer_kwargs: setattr(tokenizer, x, cls.tokenizer_kwargs[x])
-        return tokenizer
+    def __init__(self, 
+                 tokenizer_load: Union[Dict, None]=None, 
+                 tokenizer_config: Union[Dict, None]=None) -> None:
+        self._tokenizer_load = {}
+        if self.TOKENIZER_LOAD is not None: self._tokenizer_load.update(self.TOKENIZER_LOAD)
+        if tokenizer_load is not None: self._tokenizer_load.update(tokenizer_load)
+        self._tokenizer_config = {}
+        if self.TOKENIZER_CONFIG is not None: self._tokenizer_config.update(self.TOKENIZER_CONFIG)
+        if tokenizer_config is not None: self._tokenizer_config.update(tokenizer_config)
+
+    @property
+    def tokenizer_load(self) -> Dict:
+        return self._tokenizer_load
+    
+    @property
+    def tokenizer_config(self) -> Dict:
+        return self._tokenizer_config
 
 
 class LLama2TokenizerRecipe(TokenizerRecipe):
-    tokenizer_kwargs: Dict = {
+    TOKENIZER_CONFIG = {
         "padding_side": "right",
         "model_max_length": 1024
     }
 
-
-class LLamaTokenizerRecipe(TokenizerRecipe):
-    tokenizer_kwargs: Dict = {
-        "padding_side": "left",
-        "pad_token_id": 0
-    }
-    
-
 class MistralTokenizerRecipe(TokenizerRecipe):
-    tokenizer_kwargs: Dict = {
+    TOKENIZER_CONFIG = {
         # https://gist.github.com/younesbelkada/9f7f75c94bdc1981c8ca5cc937d4a4da#file-finetune_llama_v2-py-L210
         "padding_side": "right",
         "model_max_length": 1024

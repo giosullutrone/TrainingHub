@@ -4,9 +4,9 @@ import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
 from finetuner import FineTuner
-from recipes.DatasetRecipe import DatasetRecipe
+from recipes.DatasetDispatcher import DatasetRecipe
 from recipes.PeftRecipe import PeftRecipe
-from recipes.ModelRecipe import ModelRecipe
+from recipes.ModelDispatcher import ModelRecipe
 from recipes.TokenizerRecipe import TokenizerRecipe
 from recipes.QuantizationRecipe import QuantizationRecipe
 from utils.ProxySystemPromptTuning import ProxySystemPromptTuning

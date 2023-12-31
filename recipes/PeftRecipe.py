@@ -1,21 +1,31 @@
 from peft import LoraConfig, PeftConfig, PromptTuningConfig, PromptTuningInit
-from typing import Dict
-from transformers import PreTrainedTokenizer
- 
+from typing import Dict, Union
+
 
 class PeftRecipe:
-    peft_init_kwargs: Dict = {}
-    peft_config_obj = PeftConfig
+    PEFT_CONFIG_OBJ: PeftConfig = PeftConfig
+    PEFT_CONFIG: Union[Dict, None] = None
 
-    @classmethod
-    def get_peft_config(cls, **kwargs) -> PeftConfig:
-        return cls.peft_config_obj(**{**cls.peft_init_kwargs, **kwargs})  
+    def __init__(self, 
+                 peft_config: Union[Dict, None]=None, 
+                 peft_config_obj: PeftConfig=None) -> None:
+        self._peft_config = {}
+        if self.PEFT_CONFIG is not None: self._peft_config.update(self.PEFT_CONFIG)
+        if peft_config is not None: self._peft_config.update(peft_config)
+        self._peft_config_obj = peft_config_obj if peft_config_obj is not None else self.PEFT_CONFIG_OBJ
+    
+    @property
+    def peft_config(self) -> Dict:
+        return self._peft_config
+    
+    @property
+    def peft_config_obj(self) -> PeftConfig:
+        return self._peft_config_obj
 
 
 class QLoRaPeftRecipe(PeftRecipe):
-    peft_config_obj = LoraConfig
-
-    peft_init_kwargs: Dict = {
+    PEFT_CONFIG_OBJ = LoraConfig
+    PEFT_CONFIG = {
         "lora_alpha": 16,
         "lora_dropout": 0.1,
         "r": 64,
@@ -23,32 +33,34 @@ class QLoRaPeftRecipe(PeftRecipe):
         "task_type": "CAUSAL_LM",
     }
 
-
 class PromptTuningPeftRecipe(PeftRecipe):
-    peft_config_obj = PromptTuningConfig
-
-    peft_init_kwargs: Dict = {
+    PEFT_CONFIG_OBJ = PromptTuningConfig
+    PEFT_CONFIG = {
         "prompt_tuning_init": PromptTuningInit.RANDOM,
         "prompt_tuning_init_text": "This is a really important task for me, I will tip you 200 dollars if you complete it correctly",
         "num_virtual_tokens": 32,
         "task_type": "CAUSAL_LM",
     }
 
-    @classmethod
-    def get_peft_config(cls, tokenizer_name: str, **kwargs) -> PeftConfig:
-        return cls.peft_config_obj(tokenizer_name_or_path=tokenizer_name, **{**cls.peft_init_kwargs, **kwargs})
-    
-
-class PromptTuning16PeftRecipe(PeftRecipe):
-    peft_config_obj = PromptTuningConfig
-
-    peft_init_kwargs: Dict = {
-        "prompt_tuning_init": PromptTuningInit.RANDOM,
+class PromptTuningTextPeftRecipe(PeftRecipe):
+    PEFT_CONFIG_OBJ = PromptTuningConfig
+    PEFT_CONFIG = {
+        "prompt_tuning_init": PromptTuningInit.TEXT,
         "prompt_tuning_init_text": "This is a really important task for me, I will tip you 200 dollars if you complete it correctly",
-        "num_virtual_tokens": 16,
+        "num_virtual_tokens": 32,
         "task_type": "CAUSAL_LM",
     }
 
-    @classmethod
-    def get_peft_config(cls, tokenizer_name: str, **kwargs) -> PeftConfig:
-        return cls.peft_config_obj(tokenizer_name_or_path=tokenizer_name, **{**cls.peft_init_kwargs, **kwargs})
+    def __init__(self, 
+                 tokenizer_name_or_path: str,
+                 peft_config: Union[Dict, None] = None, 
+                 peft_config_obj: PeftConfig = None) -> None:
+        super().__init__({**peft_config, "tokenizer_name_or_path": tokenizer_name_or_path}, peft_config_obj)
+    
+class PromptTuning16PeftRecipe(PeftRecipe):
+    PEFT_CONFIG_OBJ = PromptTuningConfig
+    PEFT_CONFIG = {
+        "prompt_tuning_init": PromptTuningInit.RANDOM,
+        "num_virtual_tokens": 16,
+        "task_type": "CAUSAL_LM",
+    }

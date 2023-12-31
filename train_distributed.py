@@ -2,7 +2,7 @@ import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union 
 from finetuner import FineTuner
-from recipes.DatasetRecipe import MathqaValueDatasetRecipe
+from recipes.DatasetDispatcher import MathqaValueDatasetRecipe
 from recipes.PeftRecipe import QLoRaPeftRecipe, PromptTuningPeftRecipe, PromptTuning16PeftRecipe
 from utils.DispatcherRecipe import ModelEnum, DispatcherRecipe
 from utils.ProxySystemPromptTuning import ProxySystemPromptTuning
@@ -10,7 +10,7 @@ from utils import fit_response_template_tokens, fit_system_template_tokens
 from torch.utils.data import random_split
 from timeit import default_timer as timer
 from recipes.TokenizerRecipe import LLama2TokenizerRecipe, MistralTokenizerRecipe
-from recipes.ModelRecipe import LLama2ModelRecipe, MistralModelRecipe
+from recipes.ModelDispatcher import LLama2ModelRecipe, MistralModelRecipe
 from pynvml import *
 
 

@@ -1,18 +1,23 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union
 import torch
-from transformers import BitsAndBytesConfig
-  
-       
-class QuantizationRecipe:
-    quantization_init_kwargs: Dict = {}
 
-    @classmethod
-    def get_quantization_config(cls, **kwargs) -> BitsAndBytesConfig:
-        return BitsAndBytesConfig(**{**cls.quantization_init_kwargs, **kwargs})  
+
+class QuantizationRecipe:
+    QUANTIZATION_CONFIG: Union[Dict, None] = None
+
+    def __init__(self, 
+                 quantization_config: Union[Dict, None]=None) -> None:
+        self._quantization_config = {}
+        if self.QUANTIZATION_CONFIG is not None: self._quantization_config.update(self.QUANTIZATION_CONFIG)
+        if quantization_config is not None: self._quantization_config.update(quantization_config)
+    
+    @property
+    def quantization_config(self) -> Dict:
+        return self._quantization_config
 
 
 class LLama2QuantizationRecipe(QuantizationRecipe):
-    quantization_init_kwargs = {
+    QUANTIZATION_CONFIG = {
         "load_in_4bit": True,
         "bnb_4bit_quant_type": "nf4",
         "bnb_4bit_compute_dtype": torch.float16,
@@ -20,7 +25,7 @@ class LLama2QuantizationRecipe(QuantizationRecipe):
     }
 
 class LLamaQuantizationRecipe(QuantizationRecipe):
-    quantization_init_kwargs = {
+    QUANTIZATION_CONFIG = {
         "load_in_4bit": True,
         "bnb_4bit_quant_type": "nf4",
         "bnb_4bit_compute_dtype": torch.float16,
@@ -28,7 +33,7 @@ class LLamaQuantizationRecipe(QuantizationRecipe):
     }
 
 class MistralQuantizationRecipe(QuantizationRecipe):
-    quantization_init_kwargs = {
+    QUANTIZATION_CONFIG = {
         "load_in_4bit": True,
         "bnb_4bit_quant_type": "nf4",
         "bnb_4bit_compute_dtype": torch.float16,

@@ -1,14 +1,8 @@
-from datasets import load_dataset
 from transformers import TrainingArguments, PreTrainedModel, PreTrainedTokenizer
-from peft import LoraConfig, PeftConfig
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from typing import Dict, Union, Sequence, List
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
-from dataclasses import dataclass
-import torch
-import transformers
-from transformers import Trainer
-import numpy as np
+
 
 # https://huggingface.co/learn/nlp-course/chapter7/4?fw=pt
 
@@ -19,7 +13,7 @@ class FineTuner:
                 tokenizer: PreTrainedTokenizer,
                 dataset_train: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
                 dataset_validation: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
-                response_template: Union[List, None]=None) -> None:
+                response_template: Union[List[int], None]=None) -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.dataset_train = dataset_train
@@ -27,8 +21,8 @@ class FineTuner:
         self.response_template = response_template
 
     def train(self, output_dir: str, training_arguments: TrainingArguments=None, **kwargs):
-        # TODO: add default collator
-        data_collator = DataCollatorForCompletionOnlyLM(self.response_template.tolist(), tokenizer=self.tokenizer)
+        if self.response_template is not None: data_collator = DataCollatorForCompletionOnlyLM(self.response_template, tokenizer=self.tokenizer)
+        else: data_collator = None
 
         trainer = SFTTrainer(model=self.model, 
                             tokenizer=self.tokenizer,
@@ -37,8 +31,6 @@ class FineTuner:
                             data_collator=data_collator,
                             args=training_arguments,
                             dataset_text_field="text",
-                            # TODO: check connection between this and prefetch
-                            # dataset_batch_size=1,
                             **kwargs)
         trainer.train()
         trainer.save_model(output_dir)

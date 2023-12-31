@@ -1,61 +1,43 @@
-from typing import Dict, Callable
+from typing import Dict, Callable, Union
 
 
 class ModelTemplateRecipe:
-    """
-    Note: there is no need to put <s> or </s>, it will be taken care of by the tokenizer
-    """
-    @classmethod
-    def get_postprocess_function(cls) -> Callable[..., Dict]:
-        raise NotImplementedError()
-    
-    @classmethod
-    def get_response_template(cls) -> str:
-        raise NotImplementedError()
-    
-    @classmethod
-    def get_system_template(cls) -> str:
-        raise NotImplementedError()
-    
+    RESPONSE_TEMPLATE: Union[str, None] = None
+    SYSTEM_TEMPLATE: Union[str, None] = None
 
-class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
-    @classmethod
-    def get_postprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
+    def __init__(self, 
+                 postprocess_function: Callable[[Dict], Dict]=None, 
+                 response_template: Union[str, None]=None, 
+                 system_template: Union[str, None]=None) -> None:
+        if postprocess_function is not None: self.postprocess_function = postprocess_function
+        self._response_template = response_template if response_template is not None else self.RESPONSE_TEMPLATE
+        self._system_template = system_template if system_template is not None else self.SYSTEM_TEMPLATE
     
-    @classmethod
-    def get_response_template(cls) -> str:
-        return " [/INST] "
-
-    @classmethod
-    def get_system_template(cls) -> str:
-        return " <<SYS>>\n "
+    @staticmethod
+    def postprocess_function(sample: Dict) -> Dict:
+        """Note: there is no need to put <s> or </s>, it will be taken care of by the tokenizer"""
+        return sample
+    
+    @property
+    def response_template(self) -> Union[str, None]:
+        return self._response_template
+    
+    @property
+    def system_template(self) -> Union[str, None]:
+        return self._system_template
 
 
-class MistralModelTemplateRecipe(ModelTemplateRecipe):
-    @classmethod
-    def get_postprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
-    
-    @classmethod
-    def get_response_template(cls) -> str:
-        return " [/INST] "
+class LLama2ModelTemplateRecipeRecipe(ModelTemplateRecipe):
+    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
+    RESPONSE_TEMPLATE = " [/INST] "
+    SYSTEM_TEMPLATE = " <<SYS>>\n "
 
-    @classmethod
-    def get_system_template(cls) -> str:
-        return "[INST] "
+class MistralModelTemplateRecipeRecipe(ModelTemplateRecipe):
+    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
+    RESPONSE_TEMPLATE = " [/INST] "
+    SYSTEM_TEMPLATE = "[INST] "
     
-
-class NeuralModelTemplateRecipe(ModelTemplateRecipe):
-    @classmethod
-    def get_postprocess_function(cls) -> Callable[..., Dict]:
-        return lambda sample: {"prompts": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n'}
-    
-    @classmethod
-    def get_response_template(cls) -> str:
-        return "### Assistant:\n"
-
-    @classmethod
-    def get_system_template(cls) -> str:
-        return "### System:\n"
-    
+class NeuralModelTemplateRecipeRecipe(ModelTemplateRecipe):
+    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n'}
+    RESPONSE_TEMPLATE = "### Assistant:\n"
+    SYSTEM_TEMPLATE = "### System:\n"    

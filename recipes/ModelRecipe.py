@@ -1,71 +1,30 @@
-import torch
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig, PreTrainedModel
 from typing import Dict, Union
-from peft import PeftModel, get_peft_model, PeftConfig
-from recipes.ModelTemplateRecipe import LLama2ModelTemplateRecipe, NeuralModelTemplateRecipe, MistralModelTemplateRecipe, ModelTemplateRecipe
+import torch
 
 
 class ModelRecipe:
-    model_template_recipe: ModelTemplateRecipe=None
-    model_init_kwargs: Dict = {}
-    model_config_kwargs: Dict = {}
+    MODEL_LOAD: Union[Dict, None] = None
+    MODEL_CONFIG: Union[Dict, None] = None
 
-    @classmethod
-    def get_model(cls, model_path: str, quantization_config: BitsAndBytesConfig=None, peft_path_or_config: Union[str, PeftConfig]=None, **kwargs) -> PreTrainedModel:
-        model = AutoModelForCausalLM.from_pretrained(model_path, quantization_config=quantization_config, **{**cls.model_init_kwargs, **kwargs})
-        if peft_path_or_config is not None and isinstance(peft_path_or_config, str): model = PeftModel.from_pretrained(model, peft_path_or_config)
-        elif peft_path_or_config is not None and isinstance(peft_path_or_config, PeftConfig): model = get_peft_model(model, peft_path_or_config)
-        for x in cls.model_config_kwargs: setattr(getattr(model, "config"), x, cls.model_config_kwargs[x])
-        return model
-    
-    @classmethod
-    def get_postprocess_function(cls) -> Dict:
-        assert cls.model_template_recipe is not None, "Model template not defined for the model requested"
-        return cls.model_template_recipe.get_postprocess_function()
-    
-    @classmethod
-    def get_response_template(cls) -> str:
-        assert cls.model_template_recipe is not None, "Model template not defined for the model requested"
-        return cls.model_template_recipe.get_response_template()
-    
-    @classmethod
-    def get_system_template(cls) -> str:
-        assert cls.model_template_recipe is not None, "Model template not defined for the model requested"
-        return cls.model_template_recipe.get_system_template()
+    def __init__(self, model_load: Union[Dict, None]=None, model_config: Union[Dict, None]=None) -> None:
+        self._model_load = {}
+        if self.MODEL_LOAD is not None: self._model_load.update(self.MODEL_LOAD)
+        if model_load is not None: self._model_load.update(model_load)
+        self._model_config = {}
+        if self.MODEL_CONFIG is not None: self._model_config.update(self.MODEL_CONFIG)
+        if model_config is not None: self._model_config.update(model_config)
+
+    @property
+    def model_load(self) -> Dict:
+        return self._model_load
+
+    @property
+    def model_config(self) -> Dict:
+        return self._model_config
 
 
 class LLama2ModelRecipe(ModelRecipe):
-    model_template_recipe = LLama2ModelTemplateRecipe
-    model_init_kwargs: {
-        # In case of NaN during training, change to torch.bfloat16
-        "torch_dtype": torch.float16
-    }
-    model_config_kwargs: {
-        "use_cache": False,
-        "pretraining_tp": 1
-    }
-
-
-class LLamaModelRecipe(ModelRecipe):
-    model_template_recipe = LLama2ModelTemplateRecipe
-    model_init_kwargs: {
-        "torch_dtype": torch.float16
-    }
-    model_config_kwargs: {
-        "use_cache": False,
-        "pretraining_tp": 1
-    }
-
+    MODEL_LOAD = {"torch_dtype": torch.bfloat16}
 
 class MistralModelRecipe(ModelRecipe):
-    model_template_recipe = MistralModelTemplateRecipe
-    model_init_kwargs: {
-        "torch_dtype": torch.float16
-    }
-    model_config_kwargs: {
-        "use_cache": False,
-        "pretraining_tp": 1
-    }
-
-class NeuralModelRecipe(MistralModelRecipe):
-    model_template_recipe = NeuralModelTemplateRecipe
+    MODEL_LOAD = {"torch_dtype": torch.float16}

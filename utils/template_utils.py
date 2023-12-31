@@ -33,7 +33,7 @@ def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict
         _token_ids = _fit_template_tokens(sample, template, tokenizer)
         if token_ids is None or len(token_ids) > len(_token_ids): token_ids = _token_ids
         elif len(token_ids) == len(_token_ids): assert torch.equal(token_ids, _token_ids), "Found different token ids for same length"
-    return token_ids.toList()
+    return token_ids.tolist()
 
 def fit_response_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], dataset_recipe: DatasetRecipe, model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
     if model_template_recipe.response_template: return fit_template_tokens(dataset, model_template_recipe.response_template, tokenizer)

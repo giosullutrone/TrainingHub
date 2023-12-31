@@ -49,7 +49,7 @@ class LogiqaDatasetRecipe(DatasetRecipe):
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
                  yaml_path: str,
-                 response_template: str,
+                 response_template: Union[str, None]=None,
                  preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None) -> None:
         super().__init__(preprocess_function, response_template)
         self.yaml_path = yaml_path

@@ -57,5 +57,5 @@ class YAMLDatasetRecipe(DatasetRecipe):
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
-        label = self._task.doc_to_target(sample)
+        label = str(self._task.doc_to_target(sample))
         return {"prompts": prompt, "labels": label}

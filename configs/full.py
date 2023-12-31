@@ -1,7 +1,7 @@
 from transformers import TrainingArguments
 from recipes import (MistralModelRecipe, 
                      MistralTokenizerRecipe, 
-                     LogiqaDatasetRecipe, 
+                     YAMLDatasetRecipe, 
                      MistralModelTemplateRecipe)
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
@@ -9,8 +9,8 @@ from configs.Config import Config
 
 
 config = Config(
-    dataset_name="lucasmccabe/logiqa",
-    dataset_recipe=LogiqaDatasetRecipe(),
+    dataset_name="EleutherAI/logiqa",
+    dataset_recipe=YAMLDatasetRecipe(yaml_path="/app/lm-evaluation-harness/lm_eval/tasks/logiqa/logiqa.yaml"),
     num_examples=1,
     model_name="mistralai/Mistral-7B-Instruct-v0.1",
     model_recipe=MistralModelRecipe(

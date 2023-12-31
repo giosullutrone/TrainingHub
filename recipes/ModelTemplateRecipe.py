@@ -28,16 +28,19 @@ class ModelTemplateRecipe:
 
 
 class LLama2ModelTemplateRecipeRecipe(ModelTemplateRecipe):
-    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
     RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = " <<SYS>>\n "
-
+    @staticmethod
+    def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
+    
 class MistralModelTemplateRecipeRecipe(ModelTemplateRecipe):
-    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
     RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = "[INST] "
+    @staticmethod
+    def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
     
 class NeuralModelTemplateRecipeRecipe(ModelTemplateRecipe):
-    POSTPROCESS_FUNCTION = lambda sample: {"prompts": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n'}
     RESPONSE_TEMPLATE = "### Assistant:\n"
-    SYSTEM_TEMPLATE = "### System:\n"    
+    SYSTEM_TEMPLATE = "### System:\n"
+    @staticmethod
+    def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'### System:\n### User:\n{sample["prompts"]}\n### Assistant:\n'}

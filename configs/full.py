@@ -1,13 +1,8 @@
 from transformers import TrainingArguments
-from recipes import (DatasetRecipe, 
-                     ModelRecipe, 
-                     MistralModelRecipe, 
-                     TokenizerRecipe, 
+from recipes import (MistralModelRecipe, 
                      MistralTokenizerRecipe, 
-                     YAMLDatasetRecipe, 
                      LogiqaDatasetRecipe, 
-                     MistralModelTemplateRecipeRecipe,
-                     )
+                     MistralModelTemplateRecipe)
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
 from configs.Config import Config
@@ -24,7 +19,7 @@ config = Config(
             "max_position_embeddings": 512
         }
     ),
-    model_template_recipe=MistralModelTemplateRecipeRecipe(),
+    model_template_recipe=MistralModelTemplateRecipe(),
     tokenizer_recipe=MistralTokenizerRecipe(
         tokenizer_config={
             "cache_dir": "../models", 

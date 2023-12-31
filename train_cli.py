@@ -148,9 +148,9 @@ if __name__ == "__main__":
     # TODO: The validation set will have a different set of examples, should this be fixed?
     try: 
         dataset_val = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, 
-                                                 split="validation", 
-                                                 postprocess_function=model_template_recipe.postprocess_function, 
-                                                 num_examples=config.num_examples)
+                                                                    split="validation", 
+                                                                    postprocess_function=model_template_recipe.postprocess_function, 
+                                                                    num_examples=config.num_examples)
     except:
         # If you don't have a validation set available split the training set:
         dataset = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, split="train").train_test_split(test_size=config.validation_split_size)

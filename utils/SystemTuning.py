@@ -9,7 +9,7 @@ from utils import get_template_token_position
 
 # TODO: Add source of the code and version (forward function should be from huggingface models)
 
-class ProxySystemPromptTuning:
+class SystemTuning:
     @staticmethod
     def add_proxy(model: PeftModelForCausalLM, system_template: Union[str, List[int]], tokenizer: PreTrainedTokenizer=None):
         # --------------------------------------------------------------------------
@@ -23,7 +23,7 @@ class ProxySystemPromptTuning:
         # --------------------------------------------------------------------------
         model.system_token_ids = system_token_ids
         model.system_token_ids_start_idx = None
-        model.forward = partial(ProxySystemPromptTuning.forward, model, system_token_ids=system_token_ids)
+        model.forward = partial(SystemTuning.forward, model, system_token_ids=system_token_ids)
         return model
 
     @staticmethod

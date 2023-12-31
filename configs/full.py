@@ -4,7 +4,11 @@ from recipes.ModelDispatcher import ModelRecipe, MistralModelRecipe
 from recipes.TokenizerRecipe import TokenizerRecipe, MistralTokenizerRecipe
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
+from configs.Config import Config
 
+config = Config(
+    dataset_name=""
+)
 
 training_arguments: TrainingArguments = TrainingArguments(
     output_dir="../models/mistral_instruct/finetune",

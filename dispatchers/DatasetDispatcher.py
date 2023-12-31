@@ -21,7 +21,7 @@ class DatasetDispatcher:
                     split: str=None, 
                     postprocess_function=None,
                     is_test: bool=False,
-                    n_example: int=0) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+                    num_examples: int=0) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
 
         def create_text(sample: Dict, labels: bool) -> Dict: 
             if labels: sample["text"] = sample["prompts"] + sample["labels"]
@@ -35,10 +35,10 @@ class DatasetDispatcher:
         if split is not None: dataset = dataset[split]
 
         # If requested create a dataset of examples for prompting
-        if n_example > 0: 
+        if num_examples > 0: 
             dataset_len = len(dataset)
-            dataset_examples = dataset.select(range(n_example))
-            dataset = dataset.select(range(n_example, dataset_len))
+            dataset_examples = dataset.select(range(num_examples))
+            dataset = dataset.select(range(num_examples, dataset_len))
             # Prepare the example dataset
             dataset_examples = dataset_examples.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": None})
             dataset_examples = dataset_examples.map(create_text, fn_kwargs={"labels": True})

@@ -2,16 +2,8 @@ from typing import Dict, Union, Callable
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from lm_eval.tasks import ConfigurableTask
 from lm_eval.utils import load_yaml_config
+from utils import get_examples_lm_evaluation_harness_format
 
-
-class DatasetConfigUtils:
-    @staticmethod
-    def get_examples_lm_evaluation_harness_format(examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> str:
-        """
-        Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
-        """
-        if examples is None: return ""
-        return "\n\n".join([ex for ex in examples["text"]]) + "\n\n"
 
 class DatasetRecipe:
     """Kwargs to give to the "load_dataset" function from "datasets" module"""
@@ -45,7 +37,7 @@ class LogiqaDatasetRecipe(DatasetRecipe):
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         choices = ["a", "b", "c", "d"]
-        prompt = DatasetConfigUtils.get_examples_lm_evaluation_harness_format(examples)
+        prompt = get_examples_lm_evaluation_harness_format(examples)
         prompt += "Passage: " + sample["context"] + "\n"
         prompt += "Question: " + sample["query"] + "\nChoices:\n"
         for choice, option in zip(choices, sample["options"]):
@@ -64,6 +56,6 @@ class YAMLDatasetRecipe(DatasetRecipe):
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
-        prompt = (DatasetConfigUtils.get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
+        prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
         label = self._task.doc_to_target(sample)
         return {"prompts": prompt, "labels": label}

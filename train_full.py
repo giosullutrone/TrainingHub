@@ -5,7 +5,7 @@ from finetuner import FineTuner
 from recipes.DatasetDispatcher import MathqaValueDatasetRecipe
 from recipes.PeftRecipe import QLoRaPeftRecipe, PromptTuningPeftRecipe, PromptTuning16PeftRecipe
 from utils.DispatcherRecipe import ModelEnum, DispatcherRecipe
-from utils.ProxySystemPromptTuning import ProxySystemPromptTuning
+from utils.SystemTuning import SystemTuning
 from utils import fit_response_template_tokens, fit_system_template_tokens, print_gpu_utilization
 from torch.utils.data import random_split
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     # 
     # This should make the tuning better mimic the performances obtained for the typical prompt engineering done by hand
     # system_template = fit_system_template_tokens(dataset_train, model_recipe, tokenizer)
-    # model = ProxySystemPromptTuning.add_proxy(model, system_template=system_template)
+    # model = SystemTuning.add_proxy(model, system_template=system_template)
     # --------------------------------------------------------------------------
 
     print_gpu_utilization()

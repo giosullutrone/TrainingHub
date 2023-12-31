@@ -7,6 +7,7 @@ from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
 from configs.Config import Config
 
+
 config = Config(
     dataset_name="lucasmccabe/logiqa",
     dataset_recipe=LogiqaDatasetRecipe(),

@@ -16,14 +16,14 @@ config = Config(
         model_load={
             "cache_dir": "../models", 
             "use_cache": True, 
-            "max_position_embeddings": 768
+            "max_position_embeddings": 512
         }
     ),
     model_template_recipe=MistralModelTemplateRecipe(),
     tokenizer_recipe=MistralTokenizerRecipe(
         tokenizer_config={
             "cache_dir": "../models", 
-            "model_max_length": 768
+            "model_max_length": 512
         }
     ),
     training_arguments=TrainingArguments(
@@ -51,7 +51,7 @@ config = Config(
         per_device_eval_batch_size=2
     ),
     finetuner_arguments={
-        "max_seq_length": 768
+        "max_seq_length": 512
     },
     completion_only=True
 )

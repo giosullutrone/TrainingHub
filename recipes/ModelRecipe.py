@@ -24,7 +24,9 @@ class ModelRecipe:
 
 
 class LLama2ModelRecipe(ModelRecipe):
-    MODEL_LOAD = {"torch_dtype": torch.bfloat16}
+    # MODEL_LOAD = {"torch_dtype": torch.bfloat16}
+    pass
 
 class MistralModelRecipe(ModelRecipe):
-    MODEL_LOAD = {"torch_dtype": torch.float16}
+    # MODEL_LOAD = {"torch_dtype": torch.float16}
+    pass

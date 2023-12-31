@@ -12,7 +12,6 @@ class ModelDispatcher:
 
     def get_model(self, model_path: str, quantization_config: Union[BitsAndBytesConfig, None]=None, peft_path_or_config: Union[str, PeftConfig]=None) -> PreTrainedModel:
         model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(model_path, quantization_config=quantization_config, **self.model_recipe.model_load)
-        print(model.dtype)
         if peft_path_or_config is not None and isinstance(peft_path_or_config, str): model = PeftModel.from_pretrained(model, peft_path_or_config)
         elif peft_path_or_config is not None and isinstance(peft_path_or_config, PeftConfig): model = get_peft_model(model, peft_path_or_config)
         for x in self.model_recipe.model_config: setattr(getattr(model, "config"), x, self.model_recipe.model_config[x])

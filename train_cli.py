@@ -117,12 +117,11 @@ if __name__ == "__main__":
     tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(model_name)
     # Now we create the actual model
     model_recipe: ModelRecipe = config.model_recipe
-    model_template_recipe: ModelTemplateRecipe = config.model_template_recipe
     # We also initialize the quantization config (if provided)
     quantization_recipe: QuantizationRecipe = config.quantization_recipe
     quantization_config = QuantizationDispatcher(quantization_recipe).get_quantization_config() if quantization_recipe is not None else None
     # Note: during training, instead of providing the peft's config, you provide the path to the fine-tuned folder that will contain (if used) the trained adapter
-    model = ModelDispatcher(model_recipe, model_template_recipe).get_model(model_name, quantization_config, peft_config)
+    model = ModelDispatcher(model_recipe).get_model(model_name, quantization_config, peft_config)
     # --------------------------------------------------------------------------
     
     
@@ -141,6 +140,7 @@ if __name__ == "__main__":
     # -> for LLama2 we obtain "<SYS> </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
     dataset_name: str = config.dataset_name
     dataset_recipe: DatasetRecipe = config.dataset_recipe
+    model_template_recipe: ModelTemplateRecipe = config.model_template_recipe
     dataset_train = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, 
                                                                   split="train", 
                                                                   postprocess_function=model_template_recipe.postprocess_function, 

@@ -96,7 +96,7 @@ if __name__ == "__main__":
     #   the best. To solve this in the "TrainingArguments" we can specify "load_best_model_at_end=True"
     #   So that at the end of the procedure the best weights (calculated using loss on validation set) are
     #   loaded and then saved.
-    output_path: str = training_arguments["output_dir"]
+    output_path: str = training_arguments.output_dir
     # --------------------------------------------------------------------------
 
 

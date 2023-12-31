@@ -1,7 +1,5 @@
 from transformers import TrainingArguments
-from recipes.DatasetDispatcher import DatasetRecipe, MathqaValueDatasetRecipe
-from recipes.ModelDispatcher import ModelRecipe, MistralModelRecipe
-from recipes.TokenizerRecipe import TokenizerRecipe, MistralTokenizerRecipe
+from recipes import DatasetRecipe, ModelRecipe, MistralModelRecipe, TokenizerRecipe, MistralTokenizerRecipe, YAMLDatasetRecipe
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
 from configs.Config import Config
@@ -52,7 +50,7 @@ quantization_recipe: QuantizationRecipe = None
 peft_recipe: PeftRecipe = None
 
 dataset_name: str = ""
-dataset_recipe: DatasetRecipe = MathqaValueDatasetRecipe
+dataset_recipe: DatasetRecipe = YAMLDatasetRecipe
 validation_split_size: float = 0.15
 dataset_arguments = {
     "n_example": 0,

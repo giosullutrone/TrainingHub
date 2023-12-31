@@ -28,13 +28,13 @@ class ModelTemplateRecipe:
 
 
 class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
-    RESPONSE_TEMPLATE = " [/INST]"
+    RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = " <<SYS>>\n "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
     
 class MistralModelTemplateRecipe(ModelTemplateRecipe):
-    RESPONSE_TEMPLATE = " [/INST]"
+    RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = "[INST] "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}

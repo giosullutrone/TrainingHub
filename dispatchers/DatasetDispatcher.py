@@ -43,11 +43,11 @@ class DatasetDispatcher:
         # Apply the config preprocess
         dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_examples})
 
-        # Join prompts and labels into "text". If we are in test mode, ignore labels for former's creation.
-        dataset = dataset.map(create_text, fn_kwargs={"labels": is_test})
-
         # If provided, apply the postprocess_function to follow a specific prompt template
         if postprocess_function is not None: dataset = dataset.map(postprocess_function)
+
+        # Join prompts and labels into "text". If we are in test mode, ignore labels for former's creation.
+        dataset = dataset.map(create_text, fn_kwargs={"labels": is_test})
         return dataset
 
     @property

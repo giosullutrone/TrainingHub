@@ -14,7 +14,7 @@ from peft import PromptTuningConfig
 transformers.set_seed(42)
 
 
-def load_config(config_path: str, config_class: Config) -> Config:
+def load_config(config_path: str) -> Config:
     # Load the configuration file dynamically
     spec = importlib.util.spec_from_file_location("config_module", config_path)
     config_module = importlib.util.module_from_spec(spec)
@@ -26,8 +26,8 @@ def load_config(config_path: str, config_class: Config) -> Config:
     if config is None:
         raise ValueError("Config instance not found in the specified module")
 
-    if not isinstance(config, config_class):
-        raise ValueError(f"The loaded instance is not of type {config_class}")
+    if not isinstance(config, Config):
+        raise ValueError(f"The loaded instance is not of type {Config}")
     return config
 
 

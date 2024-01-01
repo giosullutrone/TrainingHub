@@ -1,4 +1,5 @@
 from typing import Dict, Callable, Union
+from cookbooks import MODEL_TEMPLATE_COOKBOOK
 
 
 class ModelTemplateRecipe:
@@ -27,18 +28,24 @@ class ModelTemplateRecipe:
         return self._system_template
 
 
+@MODEL_TEMPLATE_COOKBOOK.register()
+class DefaultModelTemplateRecipe(ModelTemplateRecipe): pass
+
+MODEL_TEMPLATE_COOKBOOK.register()
 class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = " <<SYS>>\n "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST] '}
     
+MODEL_TEMPLATE_COOKBOOK.register()
 class MistralModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = " [/INST] "
     SYSTEM_TEMPLATE = "[INST] "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] \n{sample["prompts"]} [/INST] '}
     
+MODEL_TEMPLATE_COOKBOOK.register()
 class NeuralModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = "### Assistant:\n"
     SYSTEM_TEMPLATE = "### System:\n"

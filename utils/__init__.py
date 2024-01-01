@@ -1,3 +1,3 @@
 from .template_utils import fit_response_template_tokens, fit_system_template_tokens, get_template_token_position
 from .SystemTuning import SystemTuning
-from .dataset_recipe_utils import get_examples_lm_evaluation_harness_format
+from .parsers import get_config_from_argparser

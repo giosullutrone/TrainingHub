@@ -2,7 +2,15 @@ from typing import Dict, Union, Callable
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from lm_eval.tasks import ConfigurableTask
 from lm_eval.utils import load_yaml_config
-from utils import get_examples_lm_evaluation_harness_format
+from cookbooks import DATASET_COOKBOOK
+
+
+def get_examples_lm_evaluation_harness_format(examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> str:
+    """
+    Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
+    """
+    if examples is None: return ""
+    return "\n\n".join([ex for ex in examples["text"]]) + "\n\n"
 
 
 class DatasetRecipe:
@@ -31,7 +39,10 @@ class DatasetRecipe:
     def response_template(self) -> Union[str, None]:
         return self._response_template
 
+@DATASET_COOKBOOK.register()
+class DefaultDatasetRecipe(DatasetRecipe): pass
 
+@DATASET_COOKBOOK.register()
 class LogiqaDatasetRecipe(DatasetRecipe):
     RESPONSE_TEMPLATE = "\nAnswer:"
 
@@ -46,6 +57,7 @@ class LogiqaDatasetRecipe(DatasetRecipe):
         label = f'{sample["options"][int(sample["correct_option"])]}'
         return {"prompts": prompt, "labels": label}
 
+@DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
                  yaml_path: str,

@@ -152,7 +152,8 @@ if __name__ == "__main__":
                                                                     postprocess_function=model_template_recipe.postprocess_function, 
                                                                     num_examples=config.num_examples)
     except:
-        # If you don't have a validation set available split the training set:
+        # If you don't have a validation set available, split the training set
+        assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
         dataset = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, split="train").train_test_split(test_size=config.validation_split_size)
         dataset_train, dataset_val = dataset["train"], dataset["test"]
     # --------------------------------------------------------------------------

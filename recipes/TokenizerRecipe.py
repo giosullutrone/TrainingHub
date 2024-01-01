@@ -1,5 +1,6 @@
 from transformers import AutoTokenizer, PreTrainedTokenizer
 from typing import Dict, Union
+from cookbooks import TOKENIZER_COOKBOOK
 
 
 class TokenizerRecipe:
@@ -25,12 +26,17 @@ class TokenizerRecipe:
         return self._tokenizer_config
 
 
+@TOKENIZER_COOKBOOK.register()
+class DefaultTokenizerRecipe(TokenizerRecipe): pass
+
+TOKENIZER_COOKBOOK.register()
 class LLama2TokenizerRecipe(TokenizerRecipe):
     TOKENIZER_CONFIG = {
         "padding_side": "right",
         "model_max_length": 1024
     }
 
+TOKENIZER_COOKBOOK.register()
 class MistralTokenizerRecipe(TokenizerRecipe):
     TOKENIZER_CONFIG = {
         # https://gist.github.com/younesbelkada/9f7f75c94bdc1981c8ca5cc937d4a4da#file-finetune_llama_v2-py-L210

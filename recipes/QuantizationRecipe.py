@@ -1,5 +1,6 @@
 from typing import Any, Dict, Union
 import torch
+from cookbooks import QUANTIZATION_COOKBOOK
 
 
 class QuantizationRecipe:
@@ -16,6 +17,10 @@ class QuantizationRecipe:
         return self._quantization_config
 
 
+@QUANTIZATION_COOKBOOK.register()
+class DefaultQuantizationRecipe(QuantizationRecipe): pass
+
+QUANTIZATION_COOKBOOK.register()
 class LLama2QuantizationRecipe(QuantizationRecipe):
     QUANTIZATION_CONFIG = {
         "load_in_4bit": True,
@@ -24,6 +29,7 @@ class LLama2QuantizationRecipe(QuantizationRecipe):
         "bnb_4bit_use_double_quant": False,
     }
 
+QUANTIZATION_COOKBOOK.register()
 class LLamaQuantizationRecipe(QuantizationRecipe):
     QUANTIZATION_CONFIG = {
         "load_in_4bit": True,
@@ -32,6 +38,7 @@ class LLamaQuantizationRecipe(QuantizationRecipe):
         "bnb_4bit_use_double_quant": False,
     }
 
+QUANTIZATION_COOKBOOK.register()
 class MistralQuantizationRecipe(QuantizationRecipe):
     QUANTIZATION_CONFIG = {
         "load_in_4bit": True,

@@ -1,5 +1,6 @@
 from peft import LoraConfig, PeftConfig, PromptTuningConfig, PromptTuningInit
 from typing import Dict, Union
+from cookbooks import PEFT_COOKBOOK
 
 
 class PeftRecipe:
@@ -23,6 +24,10 @@ class PeftRecipe:
         return self._peft_config_obj
 
 
+@PEFT_COOKBOOK.register()
+class DefaultPeftRecipe(PeftRecipe): pass
+
+PEFT_COOKBOOK.register()
 class QLoRaPeftRecipe(PeftRecipe):
     PEFT_CONFIG_OBJ = LoraConfig
     PEFT_CONFIG = {
@@ -33,6 +38,7 @@ class QLoRaPeftRecipe(PeftRecipe):
         "task_type": "CAUSAL_LM",
     }
 
+PEFT_COOKBOOK.register()
 class PromptTuningPeftRecipe(PeftRecipe):
     PEFT_CONFIG_OBJ = PromptTuningConfig
     PEFT_CONFIG = {
@@ -42,6 +48,7 @@ class PromptTuningPeftRecipe(PeftRecipe):
         "task_type": "CAUSAL_LM",
     }
 
+PEFT_COOKBOOK.register()
 class PromptTuningTextPeftRecipe(PeftRecipe):
     PEFT_CONFIG_OBJ = PromptTuningConfig
     PEFT_CONFIG = {
@@ -57,6 +64,7 @@ class PromptTuningTextPeftRecipe(PeftRecipe):
                  peft_config_obj: PeftConfig = None) -> None:
         super().__init__({**peft_config, "tokenizer_name_or_path": tokenizer_name_or_path}, peft_config_obj)
     
+PEFT_COOKBOOK.register()
 class PromptTuning16PeftRecipe(PeftRecipe):
     PEFT_CONFIG_OBJ = PromptTuningConfig
     PEFT_CONFIG = {

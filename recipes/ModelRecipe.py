@@ -1,6 +1,6 @@
 from typing import Dict, Union
 import torch
-
+from cookbooks import MODEL_COOKBOOK
 
 class ModelRecipe:
     MODEL_LOAD: Union[Dict, None] = None
@@ -23,8 +23,13 @@ class ModelRecipe:
         return self._model_config
 
 
+@MODEL_COOKBOOK.register()
+class DefaultModelRecipe(ModelRecipe): pass
+
+MODEL_COOKBOOK.register()
 class LLama2ModelRecipe(ModelRecipe):
     MODEL_LOAD = {"torch_dtype": torch.bfloat16}
 
+MODEL_COOKBOOK.register()
 class MistralModelRecipe(ModelRecipe):
     MODEL_LOAD = {"torch_dtype": torch.bfloat16}

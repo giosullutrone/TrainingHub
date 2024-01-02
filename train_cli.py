@@ -1,5 +1,3 @@
-import argparse
-import importlib.util
 import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
@@ -9,6 +7,7 @@ from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, Quan
 from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser
 from configs.Config import Config
 from peft import PromptTuningConfig
+import logging
 
 
 transformers.set_seed(42)
@@ -20,6 +19,8 @@ if __name__ == "__main__":
     # Here we create the config for training using the CLI.
     # Load the configuration instance using argparser
     config: Config = get_config_from_argparser()
+    # Set logger to debug if verbose is requested
+    if config.verbose: logging.basicConfig(level=logging.DEBUG)
     # --------------------------------------------------------------------------
 
 

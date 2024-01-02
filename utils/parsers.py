@@ -52,9 +52,9 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
         field_type = field.type
         # Handle Union types
         if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
-            valid_types = [t for t in field_type.__args__ if t in (str, int, dict, Dict, float)]
+            valid_types = [t for t in field_type.__args__ if t in (str, int, dict, float)]
             field_type = valid_types[0]
-            if field_type == dict or field_type == Dict:
+            if field_type == dict:
                 field_type = literal_eval
         field_default = field.default if field.default is not field.default_factory else None
         field_help = field.metadata.get("description", "")

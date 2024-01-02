@@ -3,10 +3,10 @@ import importlib.util
 import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
-from finetuner import FineTuner
+from finetuners import FineTuner
 from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
-from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens
+from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser
 from configs.Config import Config
 from peft import PromptTuningConfig
 
@@ -14,68 +14,12 @@ from peft import PromptTuningConfig
 transformers.set_seed(42)
 
 
-def load_config(config_path: str) -> Config:
-    # Load the configuration file dynamically
-    spec = importlib.util.spec_from_file_location("config_module", config_path)
-    config_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(config_module)
-
-    # Get the Config instance from the loaded module
-    config = getattr(config_module, "config", None)
-
-    if config is None:
-        raise ValueError("Config instance not found in the specified module")
-
-    if not isinstance(config, Config):
-        raise ValueError(f"The loaded instance is not of type {Config}")
-    return config
-
-
 if __name__ == "__main__":
     # --------------------------------------------------------------------------
     # ### Argparse
-    # Here we capture the config file and any argument needed from the CLI
-    # TODO: make it so you can also specify a recipe from its name using a register
-    # Create the parser
-    parser = argparse.ArgumentParser(description="Train the model with configurations from a specified Python configuration file.")
-    # Add the config file
-    parser.add_argument(
-        "-c", "--config_file",
-        required=True,
-        help="Path to the Python file containing configuration for training. Example can be found in the configs folder."
-    )
-
-    # Add the optional dataset name
-    parser.add_argument(
-        "-d", "--dataset_name",
-        required=False, default=None, type=str,
-        help="Name or path to the dataset to run."
-    )
-
-    # Add the optional model name
-    parser.add_argument(
-        "-m", "--model_name",
-        required=False, default=None, type=str,
-        help="Name or path to the model to run."
-    )
-
-    # Add the optional number of examples
-    parser.add_argument(
-        "-n", "--num_examples",
-        required=False, default=None, type=int,
-        help="Number of examples to provide to each prompt."
-    )
-
-    # Capture the arguments
-    args = parser.parse_args()
-    config_file_path = args.config_file
-
-    # Load the configuration instance
-    config: Config = load_config(config_file_path)
-    # Overwrite the config's variables if given
-    if args.dataset_name is not None: config.dataset_name = args.dataset_name
-    if args.model_name is not None: config.model_name = args.model_name
-    if args.num_examples is not None: config.num_examples = args.num_examples
+    # Here we create the config for training using the CLI.
+    # Load the configuration instance using argparser
+    config: Config = get_config_from_argparser()
     # --------------------------------------------------------------------------
 
 

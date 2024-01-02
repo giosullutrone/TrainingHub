@@ -86,21 +86,26 @@ if __name__ == "__main__":
     dataset_name: str = config.dataset_name
     dataset_recipe: DatasetRecipe = config.dataset_recipe
     model_template_recipe: ModelTemplateRecipe = config.model_template_recipe
-    dataset_train = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, 
-                                                                  split="train", 
-                                                                  postprocess_function=model_template_recipe.postprocess_function, 
-                                                                  num_examples=config.num_examples)
-    # TODO: The validation set will have a different set of examples, should this be fixed?
-    try: 
-        dataset_val = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, 
-                                                                    split="validation", 
-                                                                    postprocess_function=model_template_recipe.postprocess_function, 
-                                                                    num_examples=config.num_examples)
+    dataset_support, dataset_train = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
+                                                                                                      split="train", 
+                                                                                                      num_examples=config.num_examples,
+                                                                                                      postprocess_function=model_template_recipe.postprocess_function,
+                                                                                                      include_labels_inside_text=True)
+    try:
+        dataset_val = DatasetDispatcher(dataset_recipe).get_tuning_dataset(dataset_name, 
+                                                                           split="validation", 
+                                                                           postprocess_function=model_template_recipe.postprocess_function, 
+                                                                           dataset_support=dataset_support,
+                                                                           include_labels_inside_text=True)
     except:
         # If you don't have a validation set available, split the training set
         assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
-        dataset = DatasetDispatcher(dataset_recipe).get_dataset(dataset_name, split="train").train_test_split(test_size=config.validation_split_size)
+        dataset = dataset_train.train_test_split(test_size=config.validation_split_size)
         dataset_train, dataset_val = dataset["train"], dataset["test"]
+
+    # Logger
+    logging.debug(f'First prompt for training set:\n{dataset_train["text"]}')
+    logging.debug(f'First prompt for validation set:\n{dataset_val["text"]}')
     # --------------------------------------------------------------------------
 
 

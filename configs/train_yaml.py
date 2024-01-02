@@ -18,6 +18,7 @@ config = Config(
         weight_decay=0.001,
         fp16=False,
         bf16=True,
+        tf32=True,
         max_grad_norm=0.3,
         max_steps=1000,
         warmup_ratio=0.03,

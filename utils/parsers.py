@@ -92,13 +92,20 @@ def get_config_from_argparser() -> Config:
                     cookbook = field.metadata["cookbook"]
                     recipe_name = args_dict[field.name]
                     # Set the field with the cookbook recipe
-                    setattr(config, field.name, cookbook.get(recipe_name)(**{x: args_dict[x] for x in keywords}))
+                    kwargs = {x: args_dict[x] for x in keywords}
+                    for x in keywords:
+                        if isinstance(getattr(config, x), dict): kwargs = {**getattr(config, x), **kwargs}
+                    setattr(config, field.name, cookbook.get(recipe_name)(**kwargs))
                 elif field.name == "training_arguments":
-                    # Set training arguments separately
-                    config.training_arguments = TrainingArguments(**args_dict["training_arguments"])
+                    # Set training arguments
+                    if isinstance(config.training_arguments, dict): 
+                        config.training_arguments = TrainingArguments(**{**config.training_arguments, **args_dict["training_arguments"]})
+                    else: config.training_arguments = TrainingArguments(**args_dict["training_arguments"])
                 else:
                     # Set other fields
-                    setattr(config, field.name, args_dict[field.name])
+                    if isinstance(getattr(config, field.name), dict):
+                        setattr(config, field.name, {**getattr(config, field.name), **args_dict[field.name]})
+                    else: setattr(config, field.name, args_dict[field.name])
     else:
         # If no configuration file is provided, create a Config instance from command-line arguments
         kwargs = vars(args); kwargs.pop("config_file")

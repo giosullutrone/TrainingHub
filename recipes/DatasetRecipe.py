@@ -39,6 +39,7 @@ class DatasetRecipe:
     def response_template(self) -> Union[str, None]:
         return self._response_template
 
+
 @DATASET_COOKBOOK.register()
 class DefaultDatasetRecipe(DatasetRecipe): pass
 
@@ -54,7 +55,7 @@ class LogiqaDatasetRecipe(DatasetRecipe):
         for choice, option in zip(choices, sample["options"]):
             prompt += f"{choice.upper()}. {option}\n"
         prompt += "Answer:"
-        label = f'{sample["options"][int(sample["correct_option"])]}'
+        label = f' {sample["options"][int(sample["correct_option"])]}'
         return {"prompts": prompt, "labels": label}
 
 @DATASET_COOKBOOK.register()
@@ -69,5 +70,10 @@ class YAMLDatasetRecipe(DatasetRecipe):
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
-        label = str(self._task.doc_to_target(sample))
+        label = self._task.doc_to_target(sample)
+        if isinstance(label, int): 
+            # If the label is an integer and the task is a multiple choice one then it is the index of the element in doc_to_choice
+            # Check out: https://github.com/giosullutrone/lm-evaluation-harness-prompt-template/blob/main/lm_eval/api/task.py
+            if self._task.OUTPUT_TYPE == "multiple_choice": label = f"{self._task.config.target_delimiter}{self._task.doc_to_choice(sample)[label]}"
+            else: label = str(label)
         return {"prompts": prompt, "labels": label}

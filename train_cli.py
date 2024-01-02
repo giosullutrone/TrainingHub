@@ -7,7 +7,9 @@ from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, Quan
 from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser
 from configs.Config import Config
 from peft import PromptTuningConfig
+
 import logging
+logger = logging.getLogger("llm_steerability")
 
 
 transformers.set_seed(42)
@@ -20,7 +22,8 @@ if __name__ == "__main__":
     # Load the configuration instance using argparser
     config: Config = get_config_from_argparser()
     # Set logger to debug if verbose is requested
-    if config.verbose: logging.basicConfig(level=logging.DEBUG)
+    if config.verbose: logger.setLevel(logging.DEBUG)
+    else: logger.setLevel(logging.DEBUG)
     # --------------------------------------------------------------------------
 
 
@@ -104,8 +107,8 @@ if __name__ == "__main__":
         dataset_train, dataset_val = dataset["train"], dataset["test"]
 
     # Logger
-    logging.debug(f'First prompt for training set:\n{dataset_train["text"]}')
-    logging.debug(f'First prompt for validation set:\n{dataset_val["text"]}')
+    logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
+    logger.debug(f'First prompt for validation set:\n{dataset_val["text"][0]}')
     # --------------------------------------------------------------------------
 
 

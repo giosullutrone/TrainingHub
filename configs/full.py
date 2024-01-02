@@ -9,10 +9,11 @@ from configs.Config import Config
 
 
 config = Config(
-    dataset_name="EleutherAI/logiqa",
-    dataset_recipe=YAMLDatasetRecipe(yaml_path="/app/lm-evaluation-harness/lm_eval/tasks/logiqa/logiqa.yaml"),
+    dataset_name="math_qa",
+    dataset_recipe=YAMLDatasetRecipe(yaml_path="../lm-evaluation-harness-prompt-template/lm_eval/tasks/mathqa/mathqa.yaml"),
     num_examples=1,
     model_name="mistralai/Mistral-7B-Instruct-v0.1",
+    tokenizer_name="mistralai/Mistral-7B-Instruct-v0.1",
     model_recipe=MistralModelRecipe(
         model_load={
             "cache_dir": "../models", 
@@ -36,7 +37,7 @@ config = Config(
         weight_decay=0.001,
         fp16=False,
         bf16=True,
-        tf32=True,
+        tf32=False,
         max_grad_norm=0.3,
         max_steps=1000,
         warmup_ratio=0.03,

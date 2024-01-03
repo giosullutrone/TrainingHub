@@ -25,11 +25,12 @@ class DatasetDispatcher:
     def _process_dataset(self,
                          dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
                          dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
-                         postprocess_function=None,
-                         include_labels_inside_text: bool=False) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+                         postprocess_function,
+                         eos_token: str,
+                         include_labels_inside_text: bool) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
 
         def create_text(sample: Dict, labels: bool) -> Dict: 
-            if labels: sample["text"] = sample["prompts"] + sample["labels"]
+            if labels: sample["text"] = sample["prompts"] + sample["labels"] + eos_token
             else: sample["text"] = sample["prompts"] 
             return sample
 
@@ -48,6 +49,7 @@ class DatasetDispatcher:
                                        split: str=None, 
                                        num_examples: int=0, 
                                        postprocess_function=None,
+                                       eos_token: str="</s>",
                                        include_labels_inside_text: bool=True) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
                                                                                        Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
         # Load the dataset
@@ -63,21 +65,24 @@ class DatasetDispatcher:
             dataset_support = self._process_dataset(dataset_support, 
                                                     dataset_support=None, 
                                                     postprocess_function=None,
+                                                    eos_token=eos_token,
                                                     include_labels_inside_text=True)
         else: dataset_support = None
 
         dataset = self._process_dataset(dataset, 
                                         dataset_support=dataset_support, 
                                         postprocess_function=postprocess_function, 
+                                        eos_token=eos_token,
                                         include_labels_inside_text=include_labels_inside_text)
         return dataset_support, dataset
 
     def get_tuning_dataset(self, 
-                            dataset_path: str,
-                            split: str=None, 
-                            postprocess_function=None,
-                            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
-                            include_labels_inside_text: bool=True) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+                           dataset_path: str,
+                           split: str=None, 
+                           dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
+                           postprocess_function=None,
+                           eos_token: str="</s>",
+                           include_labels_inside_text: bool=True) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
         # Load the dataset
         dataset = self._load_dataset(dataset_path, split)
 
@@ -85,6 +90,7 @@ class DatasetDispatcher:
         dataset = self._process_dataset(dataset, 
                                         dataset_support=dataset_support, 
                                         postprocess_function=postprocess_function, 
+                                        eos_token=eos_token,
                                         include_labels_inside_text=include_labels_inside_text)
         return dataset
 

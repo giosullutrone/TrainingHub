@@ -93,12 +93,14 @@ if __name__ == "__main__":
                                                                                                       split="train", 
                                                                                                       num_examples=config.num_examples,
                                                                                                       postprocess_function=model_template_recipe.postprocess_function,
+                                                                                                      eos_token=tokenizer.eos_token,
                                                                                                       include_labels_inside_text=True)
     try:
         dataset_val = DatasetDispatcher(dataset_recipe).get_tuning_dataset(dataset_name, 
                                                                            split="validation", 
-                                                                           postprocess_function=model_template_recipe.postprocess_function, 
                                                                            dataset_support=dataset_support,
+                                                                           postprocess_function=model_template_recipe.postprocess_function, 
+                                                                           eos_token=tokenizer.eos_token,
                                                                            include_labels_inside_text=True)
     except:
         # If you don't have a validation set available, split the training set

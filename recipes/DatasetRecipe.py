@@ -21,12 +21,12 @@ class DatasetRecipe:
     def __init__(self, 
                  preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
-                 response_template: Union[str, None]=None) -> None:
+                 dataset_response_template: Union[str, None]=None) -> None:
         if preprocess_function is not None: self.preprocess_function = preprocess_function
         self._dataset_load = {}
         if self.DATASET_LOAD is not None: self._dataset_load.update(self.DATASET_LOAD)
         if dataset_load is not None: self._dataset_load.update(dataset_load)
-        self._response_template = response_template if response_template else self.RESPONSE_TEMPLATE
+        self._dataset_response_template = dataset_response_template if dataset_response_template else self.RESPONSE_TEMPLATE
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         return sample
@@ -36,8 +36,8 @@ class DatasetRecipe:
         return self._dataset_load
     
     @property
-    def response_template(self) -> Union[str, None]:
-        return self._response_template
+    def dataset_response_template(self) -> Union[str, None]:
+        return self._dataset_response_template
 
 
 @DATASET_COOKBOOK.register()
@@ -62,9 +62,9 @@ class LogiqaDatasetRecipe(DatasetRecipe):
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
                  yaml_path: str,
-                 response_template: Union[str, None]=None,
+                 dataset_response_template: Union[str, None]=None,
                  preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None) -> None:
-        super().__init__(preprocess_function, response_template)
+        super().__init__(preprocess_function, dataset_response_template)
         self.yaml_path = yaml_path
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
 

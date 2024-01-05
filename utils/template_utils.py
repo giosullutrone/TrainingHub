@@ -39,7 +39,7 @@ def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict
 
 def fit_response_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], dataset_recipe: DatasetRecipe, model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
     if model_template_recipe.model_response_template: return fit_template_tokens(dataset, model_template_recipe.model_response_template, tokenizer)
-    return fit_template_tokens(dataset, dataset_recipe.response_template, tokenizer)
+    return fit_template_tokens(dataset, dataset_recipe.dataset_response_template, tokenizer)
 
 def fit_system_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
     return fit_template_tokens(dataset, model_template_recipe.system_template, tokenizer)

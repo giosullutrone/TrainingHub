@@ -26,10 +26,10 @@ class ModelRecipe:
 @MODEL_COOKBOOK.register()
 class DefaultModelRecipe(ModelRecipe): pass
 
-MODEL_COOKBOOK.register()
+@MODEL_COOKBOOK.register()
 class LLama2ModelRecipe(ModelRecipe):
     MODEL_LOAD = {"torch_dtype": torch.bfloat16}
 
-MODEL_COOKBOOK.register()
+@MODEL_COOKBOOK.register()
 class MistralModelRecipe(ModelRecipe):
     MODEL_LOAD = {"torch_dtype": torch.bfloat16}

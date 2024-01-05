@@ -13,10 +13,12 @@ def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Uni
         if (idx + len(token_ids) < len(x)) and (all(token_ids == x[idx : idx + len(token_ids)])):
             token_ids_start_idx = idx
     if token_ids_start_idx is None: return
+    print(len(x), token_ids_start_idx, token_ids, x)
     return int(token_ids_start_idx + len(token_ids))
 
 
 def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], template: str, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
+    print(template)
     def _fit_template_tokens(sample: str, template: str, tokenizer: PreTrainedTokenizer):
         sample = tokenizer.encode(sample, return_tensors="pt", add_special_tokens=True)[0]
         token_ids = tokenizer.encode(template, return_tensors="pt", add_special_tokens=False)[0]
@@ -36,7 +38,7 @@ def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict
     return token_ids.tolist()
 
 def fit_response_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], dataset_recipe: DatasetRecipe, model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
-    if model_template_recipe.response_template: return fit_template_tokens(dataset, model_template_recipe.response_template, tokenizer)
+    if model_template_recipe.model_response_template: return fit_template_tokens(dataset, model_template_recipe.model_response_template, tokenizer)
     return fit_template_tokens(dataset, dataset_recipe.response_template, tokenizer)
 
 def fit_system_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:

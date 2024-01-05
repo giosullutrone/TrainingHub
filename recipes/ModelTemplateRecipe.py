@@ -8,10 +8,10 @@ class ModelTemplateRecipe:
 
     def __init__(self, 
                  postprocess_function: Callable[[Dict], Dict]=None, 
-                 response_template: Union[str, None]=None, 
+                 model_response_template: Union[str, None]=None, 
                  system_template: Union[str, None]=None) -> None:
         if postprocess_function is not None: self.postprocess_function = postprocess_function
-        self._response_template = response_template if response_template is not None else self.RESPONSE_TEMPLATE
+        self._model_response_template = model_response_template if model_response_template is not None else self.RESPONSE_TEMPLATE
         self._system_template = system_template if system_template is not None else self.SYSTEM_TEMPLATE
     
     @staticmethod
@@ -20,8 +20,8 @@ class ModelTemplateRecipe:
         return sample
     
     @property
-    def response_template(self) -> Union[str, None]:
-        return self._response_template
+    def model_response_template(self) -> Union[str, None]:
+        return self._model_response_template
     
     @property
     def system_template(self) -> Union[str, None]:
@@ -31,21 +31,21 @@ class ModelTemplateRecipe:
 @MODEL_TEMPLATE_COOKBOOK.register()
 class DefaultModelTemplateRecipe(ModelTemplateRecipe): pass
 
-MODEL_TEMPLATE_COOKBOOK.register()
+@MODEL_TEMPLATE_COOKBOOK.register()
 class LLama2ModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = " [/INST]"
     SYSTEM_TEMPLATE = " <<SYS>>\n "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] <<SYS>>\n \n<</SYS>>\n{sample["prompts"]} [/INST]'}
     
-MODEL_TEMPLATE_COOKBOOK.register()
+@MODEL_TEMPLATE_COOKBOOK.register()
 class MistralModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = " [/INST]"
     SYSTEM_TEMPLATE = "[INST] "
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict: return {"prompts": f'[INST] \n{sample["prompts"]} [/INST]'}
     
-MODEL_TEMPLATE_COOKBOOK.register()
+@MODEL_TEMPLATE_COOKBOOK.register()
 class NeuralModelTemplateRecipe(ModelTemplateRecipe):
     RESPONSE_TEMPLATE = "### Assistant:\n"
     SYSTEM_TEMPLATE = "### System:\n"

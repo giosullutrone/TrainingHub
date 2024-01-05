@@ -46,7 +46,7 @@ config = Config(
         "logging_steps": 0.1,
         "eval_steps": 0.1,
         "save_steps": 0.1,
-        "load_best_model_at_end": True,
+        "load_best_model_at_end": False,
         "save_total_limit": 1,
         "per_device_train_batch_size": 1,
         "per_device_eval_batch_size": 2,

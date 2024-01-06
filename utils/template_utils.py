@@ -16,7 +16,7 @@ def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Uni
     return int(token_ids_start_idx + len(token_ids))
 
 
-def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], template: str, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
+def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], template: str, tokenizer: PreTrainedTokenizer, tolist: bool=True) -> Union[List[int], torch.Tensor, None]:
     def _fit_template_tokens(sample: str, template: str, tokenizer: PreTrainedTokenizer):
         sample = tokenizer.encode(sample, return_tensors="pt", add_special_tokens=True)[0]
         token_ids = tokenizer.encode(template, return_tensors="pt", add_special_tokens=False)[0]
@@ -33,11 +33,12 @@ def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict
         _token_ids = _fit_template_tokens(sample, template, tokenizer)
         if token_ids is None or len(token_ids) > len(_token_ids): token_ids = _token_ids
         elif len(token_ids) == len(_token_ids): assert torch.equal(token_ids, _token_ids), "Found different token ids for same length"
-    return token_ids.tolist()
+    if tolist: return token_ids.tolist()
+    return token_ids
 
 def fit_response_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], dataset_recipe: DatasetRecipe, model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
     if model_template_recipe.model_response_template: return fit_template_tokens(dataset, model_template_recipe.model_response_template, tokenizer)
-    return fit_template_tokens(dataset, dataset_recipe.dataset_response_template, tokenizer)
+    return fit_template_tokens(dataset, dataset_recipe.dataset_response_template, tokenizer, tolist=True)
 
 def fit_system_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], model_template_recipe: ModelTemplateRecipe, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
-    return fit_template_tokens(dataset, model_template_recipe.system_template, tokenizer)
+    return fit_template_tokens(dataset, model_template_recipe.system_template, tokenizer, tolist=False)

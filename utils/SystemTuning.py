@@ -16,10 +16,10 @@ class SystemTuning:
         if isinstance(system_template, str):
             assert tokenizer is not None, "If the template is a string, a tokenizer must be provided"
             # The user provides a string, must tokenize
-            system_token_ids = tokenizer.encode(system_template, add_special_tokens=False, return_tensors="pt")[0].to(model.base_model.device)
+            system_token_ids = tokenizer.encode(system_template, add_special_tokens=False, return_tensors="pt")[0]
         else:
             # The user already provides the token ids
-            system_token_ids = system_template.to(model.base_model.device)
+            system_token_ids = system_template
         # --------------------------------------------------------------------------
         model.system_token_ids = system_token_ids
         model.system_token_ids_start_idx = None
@@ -71,7 +71,7 @@ class SystemTuning:
         # by a sequence of tokens (for example in llama2 it may be after '[INST]')
         # Note: We keep it fixed for all prompts.
         if self.system_token_ids_start_idx is None:
-            self.system_token_ids_start_idx = get_template_token_position(input_ids[0], self.system_token_ids)
+            self.system_token_ids_start_idx = get_template_token_position(input_ids[0], self.system_token_ids.to(input_ids[0].device))
             assert self.system_token_ids_start_idx is not None, "Could not find the system token"
         concatenated_embeds = torch.cat((inputs_embeds[:, :self.system_token_ids_start_idx], prompts, inputs_embeds[:, self.system_token_ids_start_idx:]), dim=1)
         inputs_embeds = concatenated_embeds # torch.cat((prompts, inputs_embeds), dim=1)

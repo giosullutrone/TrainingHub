@@ -30,9 +30,9 @@ config = Config(
     ),
     training_arguments={
         "num_train_epochs": 1,
-        "gradient_accumulation_steps": 1,
+        "gradient_accumulation_steps": 8,
         "optim": "adamw_torch",
-        "learning_rate": 1e-4,
+        "learning_rate": 1e-5,
         "weight_decay": 0.001,
         "fp16": False,
         "bf16": True,

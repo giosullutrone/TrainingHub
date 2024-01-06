@@ -17,7 +17,6 @@ def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Uni
 
 
 def fit_template_tokens(dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset], template: str, tokenizer: PreTrainedTokenizer) -> Union[List[int], None]:
-    print(template)
     def _fit_template_tokens(sample: str, template: str, tokenizer: PreTrainedTokenizer):
         sample = tokenizer.encode(sample, return_tensors="pt", add_special_tokens=True)[0]
         token_ids = tokenizer.encode(template, return_tensors="pt", add_special_tokens=False)[0]

@@ -13,7 +13,6 @@ def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Uni
         if (idx + len(token_ids) < len(x)) and (all(token_ids == x[idx : idx + len(token_ids)])):
             token_ids_start_idx = idx
     if token_ids_start_idx is None: return
-    print(len(x), token_ids_start_idx, token_ids, x)
     return int(token_ids_start_idx + len(token_ids))
 
 

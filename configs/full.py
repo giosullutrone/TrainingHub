@@ -10,7 +10,7 @@ from configs.Config import Config
 
 config = Config(
     dataset_name="math_qa",
-    dataset_recipe=YAMLDatasetRecipe(yaml_path="../lm-evaluation-harness-prompt-template/lm_eval/tasks/mathqa/mathqa.yaml"),
+    dataset_recipe=YAMLDatasetRecipe(dataset_load={"yaml_path": "../lm-evaluation-harness-prompt-template/lm_eval/tasks/mathqa/mathqa.yaml"}),
     num_examples=3,
     model_name="mistralai/Mistral-7B-Instruct-v0.1",
     tokenizer_name="mistralai/Mistral-7B-Instruct-v0.1",

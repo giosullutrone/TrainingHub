@@ -61,11 +61,11 @@ class LogiqaDatasetRecipe(DatasetRecipe):
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
-                 yaml_path: str,
-                 dataset_response_template: Union[str, None]=None,
-                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None) -> None:
-        super().__init__(preprocess_function, dataset_response_template)
-        self.yaml_path = yaml_path
+                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
+                 dataset_load: Union[Dict, None]=None,
+                 dataset_response_template: Union[str, None]=None) -> None:
+        self.yaml_path = dataset_load.pop("yaml_path")
+        super().__init__(preprocess_function, dataset_load, dataset_response_template)
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:

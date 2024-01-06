@@ -23,7 +23,7 @@ class SystemTuning:
         # --------------------------------------------------------------------------
         model.system_token_ids = system_token_ids
         model.system_token_ids_start_idx = None
-        model.forward = partial(SystemTuning.forward, model, system_token_ids=system_token_ids)
+        model.forward = partial(SystemTuning.forward, model)
         return model
 
     @staticmethod

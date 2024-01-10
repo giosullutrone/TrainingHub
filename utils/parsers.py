@@ -71,7 +71,7 @@ def get_config_from_argparser() -> Config:
         Config: Configuration instance based on command-line arguments.
     """
     # Generate an argument parser for the Config dataclass
-    parser = generate_argparser_from_dataclass(Config, description="Train the model with configurations from a specified Python configuration file.")
+    parser = generate_argparser_from_dataclass(Config, description="Train the model with the given configuration, be it from terminal or config file.")
     # Add a specific argument for the configuration file path
     parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing configuration for training. Example can be found in the configs folder.")
 

@@ -32,6 +32,7 @@ if __name__ == "__main__":
     # Here we create the training arguments that will be used for our training.
     # For more information, check out the huggingface documentation for "TrainingArguments"
     training_arguments: TrainingArguments = config.training_arguments
+    logger.debug("Training Arguments used: ", training_arguments)
     # --------------------------------------------------------------------------
 
 
@@ -39,12 +40,16 @@ if __name__ == "__main__":
     # Here we define the base model we want to train.
     # Note: can be both huggingface's path or a local path
     model_name: str = config.model_name
+    logger.debug("Model name: ", model_name)
     # An output path where to save the final model
     #   Tip: normally at the end of the training tha weights saved are the latest but they often are not
     #   the best. To solve this in the "TrainingArguments" we can specify "load_best_model_at_end=True"
     #   So that at the end of the procedure the best weights (calculated using loss on validation set) are
     #   loaded and then saved.
+    #   WARNING: In some situations the trainer may not be able to load the best model at the end
+    #            [In the terminal "Could not locate the best model..." or similar will appear]
     output_path: str = training_arguments.output_dir
+    logger.debug("Output path: ", model_name)
     # --------------------------------------------------------------------------
 
 

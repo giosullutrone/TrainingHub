@@ -9,52 +9,57 @@ from dataclasses import dataclass, field
 class Config:
     """
     Configuration class for training by CLI.
-
-    Attributes:
-        - `model_recipe` (ModelRecipe): Recipe for configuring the model.
-        - `model_template_recipe` (ModelTemplateRecipe): Recipe for configuring the model's template.
-        - `tokenizer_recipe` (TokenizerRecipe): Recipe for configuring the tokenizer.
-        - `dataset_recipe` (Union[DatasetRecipe, None]): Recipe for loading and preprocessing the dataset. If not specified, a YAML based dataset will be automatically selected.
-        - `yaml_path` (Union[str, None]): Path to a YAML file compatible with lm-evaluation-harness library (check out the original library's github page for format and config files). Used only if no dataset recipe has been provided. 
-        - `response_template` (Union[str, None]): Response template to use for completion-only training. Used only if no dataset recipe has been provided. TODO: add readme page with explanation of completion-only.
-        - `quantization_recipe` (Union[QuantizationRecipe, None]): Recipe for model quantization (if applicable).
-        - `peft_recipe` (Union[PeftRecipe, None]): Recipe for performance enhancement and fine-tuning (if applicable).
-        - `dataset_name` (Union[str, None]): Name or path of the dataset. If not specified here, can be also given by terminal.
-        - `model_name` (Union[str, None]): Name or path of the model. If not specified here, can be also given by terminal.
-        - `validation_split_size` (Union[float, None]): Size of the validation split as a fraction of the dataset size. Used only if validation set doesn't exist for the dataset.
-        - `num_examples` (int): Number of examples to give each prompt. They will be taken from the first elements num_examples elements of the train set. Default: 0.
-        - `training_arguments` (Union[TrainingArguments, None]): Arguments for training the model (if applicable).
-        - `finetuner_arguments` (Union[dict, None]): Arguments for fine-tuning the model (if applicable).
-        - `completion_only` (bool): Whether to train on prompt completion only or to predict the whole prompt. Default: True.
-        - `system_tuning` (bool): Whether to train `prompt tuning` on system prompts instead of the naive prepending. Only applicable if using `prompt tuning` as peft Default: False.
     """
-    # Required
+
+
+    # --------------------------------------------------------------------------
+    # Here we define all the parameters for our training procedure ("train_cli.py")
+    # Each parameter is a field. For each of them we specify the type, default and some useful metadata.
+    # 
+    # Metadata:
+    #   - `description` (str): Description of the field. Used both as documentation and also by the argument parser
+    #                          as information to show when calling `--help` on `train_cli.py` 
+    #   - `required` (bool): Whether it is required for running `train_cli.py`. 
+    #                        Note: This is done instead of removing `None` from (Union[..., None]) so that we can use also
+    #                              use a starting config file for common parameters (See utils.parsers.get_config_from_argparser for the code)
+    #   - `recipe` (List[str]): List of optional fields' names to use to create the recipe in case it was specified as a string.
+    #                           For example --model_recipe "MistralModelRecipe" will also use `model_load` and `model_config` fields for initialization.
+    #   - `cookbook` (CookBook): Cookbook to use to get the `recipe` if it was specified by string. 
+    #                            For example --model_recipe "MistralModelRecipe", the string "MistralModelRecipe" would be used to get the 
+    #                            class from the given cookbook.
+    # --------------------------------------------------------------------------
+
+
+    # --------------------------------------------------------------------------
+    # ### Required parameters
+    # Paths
     dataset_name: Union[str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Huggingface path or local path of the dataset.", 
             "required": True
         }
     )
     model_name: Union[str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Huggingface path or local path of the model.", 
             "required": True
         }
     )
     tokenizer_name: Union[str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Huggingface path or local path of the tokenizer.", 
             "required": True
         }
     )
 
+    # Recipes
     dataset_recipe: Union[DatasetRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Recipe for loading and preprocessing the dataset. Consult recipes.DatasetRecipe for all the available one.", 
             "required": True,
             "recipe": ("dataset_load", "dataset_response_template"),
             "cookbook": DATASET_COOKBOOK
@@ -63,7 +68,7 @@ class Config:
     model_recipe: Union[ModelRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Recipe for loading and configuring the model. Consult recipes.ModelRecipe for all the available one.", 
             "required": True,
             "recipe": ("model_load", "model_config"),
             "cookbook": MODEL_COOKBOOK
@@ -72,7 +77,7 @@ class Config:
     model_template_recipe: Union[ModelTemplateRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Recipe for the prompt template of the model. Consult recipes.ModelTemplateRecipe for all the available one.", 
             "required": True,
             "recipe": ("model_response_template", "system_template"),
             "cookbook": MODEL_TEMPLATE_COOKBOOK
@@ -81,18 +86,22 @@ class Config:
     tokenizer_recipe: Union[TokenizerRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.", 
+            "description": "Recipe for loading and configuring the tokenizer. Consult recipes.TokenizerRecipe for all the available one.", 
             "required": True,
             "recipe": ("tokenizer_load", "tokenizer_config"),
             "cookbook": TOKENIZER_COOKBOOK
         }
     )
+    # --------------------------------------------------------------------------
 
-    # Not required
+
+    # --------------------------------------------------------------------------
+    # ### Not required parameters
+    # Recipes
     quantization_recipe: Union[QuantizationRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.",
+            "description": "Recipe for configuring the quantization of the model (if needed).",
             "recipe": ("quantization_config", ),
             "cookbook": QUANTIZATION_COOKBOOK
         }
@@ -100,31 +109,113 @@ class Config:
     peft_recipe: Union[PeftRecipe, str, None] = field(
         default=None,
         metadata={
-            "description": "Recipe for configuring the model.",
+            "description": "Recipe for configuring the peft adapter to apply to the model (if needed).",
             "recipe": ("peft_config", ),
             "cookbook": PEFT_COOKBOOK
         }
     )
-    # Params not required
-    dataset_load: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    model_load: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    model_config: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    tokenizer_load: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    tokenizer_config: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    quantization_config: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    peft_config: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    finetuner_arguments: Union[dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
 
-    dataset_response_template: Union[str, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    model_response_template: Union[str, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-    system_template: Union[str, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-
-    validation_split_size: Union[float, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-
-    training_arguments: Union[TrainingArguments, dict, None] = field(default=None, metadata={"description": "Recipe for configuring the model."})
-
-    num_examples: int = field(default=0, metadata={"description": "Recipe for configuring the model."})
-    completion_only: bool = field(default=True, metadata={"description": "Recipe for configuring the model."})
-    system_tuning: bool = field(default=False, metadata={"description": "Recipe for configuring the model."})
-
-    verbose: bool = field(default=False, metadata={"description": "Recipe for configuring the model."})
+    # Recipe kwargs
+    dataset_load: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for dataset load."
+        }
+    )
+    model_load: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for model load."
+        }
+    )
+    model_config: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for model configuration."
+        }
+    )
+    tokenizer_load: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for tokenizer load."
+        }
+    )
+    tokenizer_config: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for tokenizer configuration."
+        }
+    )
+    quantization_config: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for quantization configuration."
+        }
+    )
+    peft_config: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for peft configuration."
+        }
+    )
+    finetuner_arguments: Union[dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for finetuner configuration. For more information check out trl.SFTTrainer for available arguments."
+        }
+    )
+    dataset_response_template: Union[str, None] = field(
+        default=None, 
+        metadata={
+            "description": "Response template for the dataset used."
+        }
+    )
+    model_response_template: Union[str, None] = field(
+        default=None, 
+        metadata={
+            "description": "Response template for the model used."
+        }
+    )
+    system_template: Union[str, None] = field(
+        default=None, 
+        metadata={
+            "description": "System template for the model used."
+        }
+    )
+    validation_split_size: Union[float, None] = field(
+        default=None, 
+        metadata={
+            "description": "Fraction of training set to use for validation in case the dataset specified does not have one."
+        }
+    )
+    training_arguments: Union[TrainingArguments, dict, None] = field(
+        default=None, 
+        metadata={
+            "description": "Training arguments to pass to the trainer. For more information check out transformers.TrainingArguments for available arguments."
+        }
+    )
+    num_examples: int = field(
+        default=0, 
+        metadata={
+            "description": "Number of static examples to provide for each prompt."
+        }
+    )
+    completion_only: bool = field(
+        default=True, 
+        metadata={
+            "description": "Whether to train the model only on completion (i.e. text after response template) or the full prompt."
+        }
+    )
+    system_tuning: bool = field(
+        default=False, 
+        metadata={
+            "description": "Whether to use the basic implementation of PromptTuning or the modified one that places the learned tokens after the system template"
+        }
+    )
+    verbose: bool = field(
+        default=False, 
+        metadata={
+            "description": "Whether to set the logger to DEBUG mode."
+        }
+    )
+    # --------------------------------------------------------------------------

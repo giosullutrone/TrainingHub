@@ -47,7 +47,8 @@ if __name__ == "__main__":
     #   So that at the end of the procedure the best weights (calculated using loss on validation set) are
     #   loaded and then saved.
     #   WARNING: In some situations the trainer may not be able to load the best model at the end
-    #            [In the terminal "Could not locate the best model..." or similar will appear]
+    #            [In the terminal "Could not locate the best model..." or similar will appear].
+    #            In that case use save_total_limit
     output_path: str = training_arguments.output_dir
     logger.debug("Output path: ", model_name)
     # --------------------------------------------------------------------------

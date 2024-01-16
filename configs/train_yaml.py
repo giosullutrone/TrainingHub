@@ -1,7 +1,7 @@
-from configs.Config import Config
+from configs.ConfigTrain import ConfigTrain
 
 
-config = Config(
+config = ConfigTrain(
     dataset_name="math_qa",
     dataset_recipe="YAMLDatasetRecipe",
     training_arguments={

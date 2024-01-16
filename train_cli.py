@@ -5,7 +5,7 @@ from finetuners import FineTuner
 from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
 from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser
-from configs.Config import Config
+from configs import ConfigTrain
 from peft import PromptTuningConfig
 
 import logging
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # ### Argparse
     # Here we create the config for training using the CLI.
     # Load the configuration instance using argparser
-    config: Config = get_config_from_argparser()
+    config: ConfigTrain = get_config_from_argparser(ConfigTrain)
     # Set logger to debug if verbose is requested
     if config.verbose: logger.setLevel(logging.DEBUG)
     else: logger.setLevel(logging.DEBUG)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Here we create the training arguments that will be used for our training.
     # For more information, check out the huggingface documentation for "TrainingArguments"
     training_arguments: TrainingArguments = config.training_arguments
-    logger.debug("Training Arguments used: ", training_arguments)
+    logger.debug(f"Training Arguments used: {training_arguments}")
     # --------------------------------------------------------------------------
 
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # Here we define the base model we want to train.
     # Note: can be both huggingface's path or a local path
     model_name: str = config.model_name
-    logger.debug("Model name: ", model_name)
+    logger.debug(f"Model name: {model_name}")
     # An output path where to save the final model
     #   Tip: normally at the end of the training tha weights saved are the latest but they often are not
     #   the best. To solve this in the "TrainingArguments" we can specify "load_best_model_at_end=True"
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     #            [In the terminal "Could not locate the best model..." or similar will appear].
     #            In that case use save_total_limit
     output_path: str = training_arguments.output_dir
-    logger.debug("Output path: ", model_name)
+    logger.debug(f"Output path: {output_path}")
     # --------------------------------------------------------------------------
 
 

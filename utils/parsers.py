@@ -3,11 +3,11 @@ from dataclasses import fields
 from typing import Union, Dict
 import importlib.util
 from ast import literal_eval
-from configs import Config
+from configs import ConfigTrain, ConfigSimilarity
 from transformers import TrainingArguments
 
 
-def load_config(config_path: str) -> Config:
+def load_config(config_path: str) -> Union[ConfigTrain, ConfigSimilarity]:
     """
     Load configuration from a Python file.
 
@@ -28,8 +28,8 @@ def load_config(config_path: str) -> Config:
     config = getattr(config_module, "config", None)
 
     # Check if a valid Config instance is obtained
-    if config is None or not isinstance(config, Config):
-        raise ValueError("Invalid configuration module or Config instance not found")
+    if config is None or (not isinstance(config, ConfigTrain) and not isinstance(config, ConfigSimilarity)):
+        raise ValueError("Invalid configuration module or config instance not found")
 
     return config
 
@@ -63,7 +63,7 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
     return parser
 
 
-def get_config_from_argparser() -> Config:
+def get_config_from_argparser(cls: Union[ConfigTrain, ConfigSimilarity]) -> Union[ConfigTrain, ConfigSimilarity]:
     """
     Parse command-line arguments and generate a Config instance.
 
@@ -71,9 +71,9 @@ def get_config_from_argparser() -> Config:
         Config: Configuration instance based on command-line arguments.
     """
     # Generate an argument parser for the Config dataclass
-    parser = generate_argparser_from_dataclass(Config, description="Train the model with the given configuration, be it from terminal or config file.")
+    parser = generate_argparser_from_dataclass(cls, description="Train / calculate similarity for the model with the given configuration, be it from terminal or config file.")
     # Add a specific argument for the configuration file path
-    parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing configuration for training. Example can be found in the configs folder.")
+    parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing base configuration. Example can be found in the configs folder.")
 
     # Parse command-line arguments
     args = parser.parse_args()
@@ -84,7 +84,7 @@ def get_config_from_argparser() -> Config:
         config = load_config(config_file_path)
         args_dict = vars(args)
 
-        for field in fields(Config):
+        for field in fields(config):
             if args_dict[field.name] is not None:
                 if "recipe" in field.metadata:
                     # Extract recipe information from metadata
@@ -94,9 +94,9 @@ def get_config_from_argparser() -> Config:
                     # Set the field with the cookbook recipe
                     kwargs = {x: args_dict[x] for x in keywords}
                     for x in keywords:
-                        if isinstance(getattr(config, x), dict): kwargs = {**getattr(config, x), **kwargs}
+                        if isinstance(getattr(config, x), dict): kwargs[x] = {**getattr(config, x), **kwargs[x]} if kwargs[x] is not None else getattr(config, x)
                     setattr(config, field.name, cookbook.get(recipe_name)(**kwargs))
-                elif field.name == "training_arguments":
+                elif cls == ConfigTrain and field.name == "training_arguments":
                     # Set training arguments
                     if isinstance(config.training_arguments, dict): 
                         config.training_arguments = TrainingArguments(**{**config.training_arguments, **args_dict["training_arguments"]})
@@ -109,14 +109,17 @@ def get_config_from_argparser() -> Config:
     else:
         # If no configuration file is provided, create a Config instance from command-line arguments
         kwargs = vars(args); kwargs.pop("config_file")
-        config = Config(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
+        if cls == ConfigTrain:
+            config = ConfigTrain(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
+        elif cls == ConfigSimilarity:
+            config = ConfigTrain(**kwargs)
 
     # Validate the configuration
     validate_config(config)
     return config
 
 
-def validate_config(config: Config):
+def validate_config(config: Union[ConfigTrain, ConfigSimilarity]):
     """
     Validate the provided configuration.
 
@@ -126,7 +129,7 @@ def validate_config(config: Config):
     Raises:
         ValueError: If a required field is not provided or if a recipe field is of type string.
     """
-    for field in fields(Config):
+    for field in fields(config):
         # Check for required fields
         if field.metadata.get("required", False) and getattr(config, field.name) is None:
             raise ValueError(f"{field.name} is required but not provided from config file or terminal.")

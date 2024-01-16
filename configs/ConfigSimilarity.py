@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class Config:
+class ConfigSimilarity:
     """
-    Configuration class for training by CLI.
+    Configuration class for similarity calculation by CLI.
     """
 
 
@@ -51,6 +51,27 @@ class Config:
         default=None,
         metadata={
             "description": "Huggingface path or local path of the tokenizer.", 
+            "required": True
+        }
+    )
+    model_finetune_path: Union[str, None] = field(
+        default=None,
+        metadata={
+            "description": "Path to the finetuned model.",
+            "required": True
+        }
+    )
+    model_peft_path: Union[str, None] = field(
+        default=None,
+        metadata={
+            "description": "Path to the peft adapter to apply to the model.",
+            "required": True
+        }
+    )
+    output_path: Union[str, None] = field(
+        default=None,
+        metadata={
+            "description": "Output path for .json file.",
             "required": True
         }
     )
@@ -106,14 +127,6 @@ class Config:
             "cookbook": QUANTIZATION_COOKBOOK
         }
     )
-    peft_recipe: Union[PeftRecipe, str, None] = field(
-        default=None,
-        metadata={
-            "description": "Recipe for configuring the peft adapter to apply to the model (if needed).",
-            "recipe": ("peft_config", ),
-            "cookbook": PEFT_COOKBOOK
-        }
-    )
 
     # Recipe kwargs
     dataset_load: Union[dict, None] = field(
@@ -152,18 +165,6 @@ class Config:
             "description": "Kwargs for quantization configuration."
         }
     )
-    peft_config: Union[dict, None] = field(
-        default=None, 
-        metadata={
-            "description": "Kwargs for peft configuration."
-        }
-    )
-    finetuner_arguments: Union[dict, None] = field(
-        default=None, 
-        metadata={
-            "description": "Kwargs for finetuner configuration. For more information check out trl.SFTTrainer for available arguments."
-        }
-    )
     dataset_response_template: Union[str, None] = field(
         default=None, 
         metadata={
@@ -182,16 +183,10 @@ class Config:
             "description": "System template for the model used."
         }
     )
-    validation_split_size: Union[float, None] = field(
-        default=None, 
+    split: Union[str, None] = field(
+        default="test", 
         metadata={
-            "description": "Fraction of training set to use for validation in case the dataset specified does not have one."
-        }
-    )
-    training_arguments: Union[TrainingArguments, dict, None] = field(
-        default=None, 
-        metadata={
-            "description": "Training arguments to pass to the trainer. For more information check out transformers.TrainingArguments for available arguments."
+            "description": "Split to use for similarity calculation."
         }
     )
     num_examples: int = field(
@@ -200,16 +195,22 @@ class Config:
             "description": "Number of static examples to provide for each prompt."
         }
     )
-    completion_only: bool = field(
-        default=True, 
+    num_samples: int = field(
+        default=-1, 
         metadata={
-            "description": "Whether to train the model only on completion (i.e. text after response template) or the full prompt."
+            "description": "Number of samples to limit dataset to. -1 for no limit."
         }
     )
     system_tuning: bool = field(
         default=False, 
         metadata={
-            "description": "Whether to use the basic implementation of PromptTuning or the modified one that places the learned tokens after the system template"
+            "description": "Whether to use the basic implementation of PromptTuning or the modified one that places the learned tokens after the system template."
+        }
+    )
+    device: str = field(
+        default="cuda", 
+        metadata={
+            "description": "Device to run operations on."
         }
     )
     verbose: bool = field(

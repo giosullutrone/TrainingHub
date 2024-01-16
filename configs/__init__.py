@@ -1,1 +1,2 @@
-from .Config import Config
+from .ConfigTrain import ConfigTrain
+from .ConfigSimilarity import ConfigSimilarity

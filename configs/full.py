@@ -5,10 +5,10 @@ from recipes import (MistralModelRecipe,
                      MistralModelTemplateRecipe)
 from recipes.QuantizationRecipe import QuantizationRecipe
 from recipes.PeftRecipe import PeftRecipe
-from configs.Config import Config
+from configs.ConfigTrain import ConfigTrain
 
 
-config = Config(
+config = ConfigTrain(
     dataset_name="math_qa",
     dataset_recipe=YAMLDatasetRecipe(dataset_load={"yaml_path": "../lm-evaluation-harness-prompt-template/lm_eval/tasks/mathqa/mathqa.yaml"}),
     num_examples=3,

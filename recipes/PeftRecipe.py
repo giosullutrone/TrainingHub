@@ -57,12 +57,6 @@ class PromptTuningTextPeftRecipe(PeftRecipe):
         "num_virtual_tokens": 32,
         "task_type": "CAUSAL_LM",
     }
-
-    def __init__(self, 
-                 tokenizer_name_or_path: str,
-                 peft_config: Union[Dict, None] = None, 
-                 peft_config_obj: PeftConfig = None) -> None:
-        super().__init__({**peft_config, "tokenizer_name_or_path": tokenizer_name_or_path}, peft_config_obj)
     
 @PEFT_COOKBOOK.register()
 class PromptTuning16PeftRecipe(PeftRecipe):

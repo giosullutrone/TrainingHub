@@ -90,7 +90,7 @@ class DatasetDispatcher:
         dataset = self._process_dataset(dataset, 
                                         dataset_support=dataset_support, 
                                         postprocess_function=postprocess_function, 
-                                        eos_token="",
+                                        eos_token=eos_token,
                                         include_labels_inside_text=include_labels_inside_text)
         return dataset
 

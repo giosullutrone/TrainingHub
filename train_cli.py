@@ -23,7 +23,7 @@ if __name__ == "__main__":
     config: ConfigTrain = get_config_from_argparser(ConfigTrain)
     # Set logger to debug if verbose is requested
     if config.verbose: logger.setLevel(logging.DEBUG)
-    else: logger.setLevel(logging.DEBUG)
+    else: logger.setLevel(logging.INFO)
     # --------------------------------------------------------------------------
 
 

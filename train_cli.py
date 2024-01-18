@@ -61,7 +61,7 @@ if __name__ == "__main__":
     peft_recipe: PeftRecipe = config.peft_recipe
     peft_config = PeftDispatcher(peft_recipe).get_peft_config() if peft_recipe is not None else None
 
-    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
+    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.prompt_tuning_most_common_init:
         dataset_train = DatasetDispatcher(config.dataset_recipe).get_tuning_dataset(config.dataset_name, 
                                                                                     split="train",
                                                                                     eos_token="",

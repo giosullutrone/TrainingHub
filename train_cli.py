@@ -53,6 +53,7 @@ if __name__ == "__main__":
     logger.debug(f"Output path: {output_path}")
     # --------------------------------------------------------------------------
 
+
     # --------------------------------------------------------------------------
     # ### Peft config initialization
     # For the fine-tuning we can use different peft adapters. 
@@ -143,7 +144,9 @@ if __name__ == "__main__":
     # Here we are using an util function that given the specific dataset recipe and model recipe, finds the best response template
     # for the dataset selected and model selected.
     # [It uses the model recipe's template if it is available else the dataset recipe one and finds the best token ids to use for compatibility]
-    if config.completion_only: response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer)
+    if config.completion_only: 
+        response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer)
+        logger.debug(f'Found the following response template tokens: {response_template}')
     else: response_template = None
     # --------------------------------------------------------------------------
 
@@ -162,6 +165,7 @@ if __name__ == "__main__":
     if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
         system_template = fit_system_template_tokens(dataset_train, model_template_recipe, tokenizer)
         model = SystemTuning.add_proxy(model, system_template=system_template, tokenizer=tokenizer)
+        logger.debug(f'Added system tuning modification as requested')
     # --------------------------------------------------------------------------
 
 

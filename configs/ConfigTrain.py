@@ -209,7 +209,13 @@ class ConfigTrain:
     system_tuning: bool = field(
         default=False, 
         metadata={
-            "description": "Whether to use the basic implementation of PromptTuning or the modified one that places the learned tokens after the system template"
+            "description": "Whether to use the basic implementation of PromptTuning or the modified one that places the learned tokens after the system template."
+        }
+    )
+    prompt_tuning_most_common_init: bool = field(
+        default=False, 
+        metadata={
+            "description": "Whether to use the most common words in the dataset as starting point for prompt tuning."
         }
     )
     verbose: bool = field(

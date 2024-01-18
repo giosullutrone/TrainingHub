@@ -4,7 +4,7 @@ from typing import Dict, Union
 from finetuners import FineTuner
 from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
-from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser
+from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser, most_common_words
 from configs import ConfigTrain
 from peft import PromptTuningConfig
 
@@ -53,7 +53,6 @@ if __name__ == "__main__":
     logger.debug(f"Output path: {output_path}")
     # --------------------------------------------------------------------------
 
-
     # --------------------------------------------------------------------------
     # ### Peft config initialization
     # For the fine-tuning we can use different peft adapters. 
@@ -61,6 +60,15 @@ if __name__ == "__main__":
     # Here we initialize the adapter's configuration used in the following sections.
     peft_recipe: PeftRecipe = config.peft_recipe
     peft_config = PeftDispatcher(peft_recipe).get_peft_config() if peft_recipe is not None else None
+
+    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
+        dataset_train = DatasetDispatcher(config.dataset_recipe).get_tuning_dataset(config.dataset_name, 
+                                                                                    split="train",
+                                                                                    eos_token="",
+                                                                                    include_labels_inside_text=False)
+        words = (" ".join(list(dataset_train["text"]))).lower().split(" ")
+        peft_config.prompt_tuning_init_text = " ".join(most_common_words(words, peft_config.num_virtual_tokens))
+        logger.debug(f"Prompt tuning init text set to: {peft_config.prompt_tuning_init_text}")
     # --------------------------------------------------------------------------
 
 

@@ -57,6 +57,16 @@ class LogiqaDatasetRecipe(DatasetRecipe):
         prompt += "Answer:"
         label = f' {sample["options"][int(sample["correct_option"])]}'
         return {"prompts": prompt, "labels": label}
+    
+@DATASET_COOKBOOK.register()
+class MathqaDatasetRecipe(DatasetRecipe):
+    RESPONSE_TEMPLATE = "\nAnswer:"
+
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+        prompt = get_examples_lm_evaluation_harness_format(examples)
+        prompt += f"Question: {sample['Problem']}\nOptions: {sample['options']}\nAnswer:"
+        label = {['a', 'b', 'c', 'd', 'e'].index(sample["correct"])}
+        return {"prompts": prompt, "labels": label}
 
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
@@ -69,7 +79,8 @@ class YAMLDatasetRecipe(DatasetRecipe):
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
-        prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
+        try: prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
+        except: return {"prompts": None, "labels": None}
         label = self._task.doc_to_target(sample)
         if isinstance(label, int): 
             # If the label is an integer and the task is a multiple choice one then it is the index of the element in doc_to_choice

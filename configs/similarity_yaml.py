@@ -6,6 +6,5 @@ config = ConfigSimilarity(
     tokenizer_config={
         "padding_side": "left", 
         "from_slow":  True
-    },
-    system_tuning=True
+    }
 )

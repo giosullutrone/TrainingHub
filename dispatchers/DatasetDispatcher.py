@@ -36,6 +36,7 @@ class DatasetDispatcher:
 
         # Apply the preprocess
         dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support})
+        dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)
 
         # If provided, apply the postprocess_function to follow a specific prompt template
         if postprocess_function is not None: dataset = dataset.map(postprocess_function)

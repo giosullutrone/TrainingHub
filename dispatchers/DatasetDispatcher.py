@@ -20,6 +20,7 @@ class DatasetDispatcher:
 
         # Split dataset if requested
         if split is not None: dataset = dataset[split]
+        if self.dataset_recipe.preprocess_dataset: dataset = self.dataset_recipe.preprocess_dataset(dataset)
         return dataset
 
     def _process_dataset(self,

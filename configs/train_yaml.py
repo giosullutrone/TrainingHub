@@ -2,16 +2,15 @@ from configs.ConfigTrain import ConfigTrain
 
 
 config = ConfigTrain(
-    dataset_name="math_qa",
     dataset_recipe="YAMLDatasetRecipe",
     training_arguments={
-        "num_train_epochs": 1,
+        "num_train_epochs": 4,
         "gradient_accumulation_steps": 8,
         "optim": "adamw_torch",
         "learning_rate": 1e-5,
         "weight_decay": 0.001,
-        "bf16": True,
-        "tf32": True,
+        "bf16": False,
+        "tf32": False,
         "max_grad_norm": 0.3,
         "max_steps": -1,
         "warmup_ratio": 0.03,

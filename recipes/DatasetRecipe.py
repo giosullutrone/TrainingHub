@@ -19,15 +19,20 @@ class DatasetRecipe:
     RESPONSE_TEMPLATE: Union[str, None] = None
 
     def __init__(self, 
+                 preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
                  preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
                  dataset_response_template: Union[str, None]=None) -> None:
+        if preprocess_dataset is not None: self.preprocess_dataset = preprocess_dataset
         if preprocess_function is not None: self.preprocess_function = preprocess_function
         self._dataset_load = {}
         if self.DATASET_LOAD is not None: self._dataset_load.update(self.DATASET_LOAD)
         if dataset_load is not None: self._dataset_load.update(dataset_load)
         self._dataset_response_template = dataset_response_template if dataset_response_template else self.RESPONSE_TEMPLATE
 
+    def preprocess_dataset(self, dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]:
+        return dataset
+    
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         return sample
 
@@ -71,20 +76,21 @@ class MathqaDatasetRecipe(DatasetRecipe):
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
+                 preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
                  preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
                  dataset_response_template: Union[str, None]=None) -> None:
         self.yaml_path = dataset_load.pop("yaml_path")
-        super().__init__(preprocess_function, dataset_load, dataset_response_template)
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
+        if self._task._config.process_docs and not preprocess_dataset: preprocess_dataset = self._task._config.process_docs
+        super().__init__(preprocess_dataset, preprocess_function, dataset_load, dataset_response_template)
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         try: prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
-        except: return {"prompts": None, "labels": None}
+        except Exception as e: print(e); return {"prompts": None, "labels": None}
         label = self._task.doc_to_target(sample)
         if isinstance(label, int): 
             # If the label is an integer and the task is a multiple choice one then it is the index of the element in doc_to_choice
             # Check out: https://github.com/giosullutrone/lm-evaluation-harness-prompt-template/blob/main/lm_eval/api/task.py
             if self._task.OUTPUT_TYPE == "multiple_choice": label = f"{self._task.config.target_delimiter}{self._task.doc_to_choice(sample)[label]}"
-            else: label = str(label)
-        return {"prompts": prompt, "labels": label}
+        return {"prompts": str(prompt), "labels": str(label)}

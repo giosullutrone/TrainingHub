@@ -94,9 +94,3 @@ class DatasetDispatcher:
     @property
     def dataset_recipe(self) -> DatasetRecipe:
         return self._dataset_recipe
-    
-class DatasetDPODispatcher(DatasetDispatcher):
-    def _process_dataset(self, dataset: DatasetDict | Dataset | IterableDatasetDict | IterableDataset, 
-                         dataset_support: DatasetDict | Dataset | IterableDatasetDict | IterableDataset, 
-                         postprocess_function, eos_token: str, include_labels_inside_text: bool) -> DatasetDict | Dataset | IterableDatasetDict | IterableDataset:
-        return super()._process_dataset(dataset, dataset_support, postprocess_function, eos_token, include_labels_inside_text)

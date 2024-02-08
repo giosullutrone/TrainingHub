@@ -25,8 +25,5 @@ config = ConfigTrain(
         "per_device_train_batch_size": 1,
         "per_device_eval_batch_size": 2,
     },
-    finetuner_arguments={
-        "max_seq_length": 512
-    },
     completion_only=True
 )

@@ -4,9 +4,6 @@ from typing import Dict, Union, Sequence, List
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 
 
-# https://huggingface.co/learn/nlp-course/chapter7/4?fw=pt
-
-
 class FineTuner:
     def __init__(self, 
                 model: PreTrainedModel,

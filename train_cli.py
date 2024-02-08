@@ -123,6 +123,8 @@ if __name__ == "__main__":
         dataset = dataset_train.train_test_split(test_size=config.validation_split_size)
         dataset_train, dataset_val = dataset["train"], dataset["test"]
 
+    if config.training_size: dataset_train = dataset_train.select(range(config.training_size))
+
     # Logger
     logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
     logger.debug(f'First prompt for validation set:\n{dataset_val["text"][0]}')

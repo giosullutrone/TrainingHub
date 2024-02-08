@@ -188,6 +188,12 @@ class ConfigTrain:
             "description": "Fraction of training set to use for validation in case the dataset specified does not have one."
         }
     )
+    training_size: Union[int, None] = field(
+        default=None, 
+        metadata={
+            "description": "Number of samples to limit the training dataset to. Default: None -> No limits"
+        }
+    )
     training_arguments: Union[TrainingArguments, dict, None] = field(
         default=None, 
         metadata={

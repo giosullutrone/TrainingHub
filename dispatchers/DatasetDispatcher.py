@@ -3,11 +3,6 @@ from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, It
 from recipes.DatasetRecipe import DatasetRecipe
 
 
-# https://huggingface.co/learn/nlp-course/chapter7/4?fw=pt
-# https://huggingface.co/docs/trl/main/en/sft_trainer
-# https://www.reddit.com/r/LocalLLaMA/comments/15hz7gl/my_finetuning_based_on_llama27bchathf_model/
-
-
 class DatasetDispatcher:
     def __init__(self, dataset_recipe: DatasetRecipe) -> None:
         self._dataset_recipe = dataset_recipe
@@ -99,3 +94,9 @@ class DatasetDispatcher:
     @property
     def dataset_recipe(self) -> DatasetRecipe:
         return self._dataset_recipe
+    
+class DatasetDPODispatcher(DatasetDispatcher):
+    def _process_dataset(self, dataset: DatasetDict | Dataset | IterableDatasetDict | IterableDataset, 
+                         dataset_support: DatasetDict | Dataset | IterableDatasetDict | IterableDataset, 
+                         postprocess_function, eos_token: str, include_labels_inside_text: bool) -> DatasetDict | Dataset | IterableDatasetDict | IterableDataset:
+        return super()._process_dataset(dataset, dataset_support, postprocess_function, eos_token, include_labels_inside_text)

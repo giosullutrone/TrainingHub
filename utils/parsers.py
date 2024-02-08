@@ -3,11 +3,11 @@ from dataclasses import fields
 from typing import Union, Dict
 import importlib.util
 from ast import literal_eval
-from configs import ConfigTrain, ConfigSimilarity
+from configs import ConfigTrain
 from transformers import TrainingArguments
 
 
-def load_config(config_path: str) -> Union[ConfigTrain, ConfigSimilarity]:
+def load_config(config_path: str) -> ConfigTrain:
     """
     Load configuration from a Python file.
 
@@ -28,7 +28,7 @@ def load_config(config_path: str) -> Union[ConfigTrain, ConfigSimilarity]:
     config = getattr(config_module, "config", None)
 
     # Check if a valid Config instance is obtained
-    if config is None or (not isinstance(config, ConfigTrain) and not isinstance(config, ConfigSimilarity)):
+    if config is None or not isinstance(config, ConfigTrain):
         raise ValueError("Invalid configuration module or config instance not found")
 
     return config
@@ -63,7 +63,7 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
     return parser
 
 
-def get_config_from_argparser(cls: Union[ConfigTrain, ConfigSimilarity]) -> Union[ConfigTrain, ConfigSimilarity]:
+def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
     """
     Parse command-line arguments and generate a Config instance.
 
@@ -71,7 +71,7 @@ def get_config_from_argparser(cls: Union[ConfigTrain, ConfigSimilarity]) -> Unio
         Config: Configuration instance based on command-line arguments.
     """
     # Generate an argument parser for the Config dataclass
-    parser = generate_argparser_from_dataclass(cls, description="Train / calculate similarity for the model with the given configuration, be it from terminal or config file.")
+    parser = generate_argparser_from_dataclass(cls, description="Train the model with the given configuration, be it from terminal or config file.")
     # Add a specific argument for the configuration file path
     parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing base configuration. Example can be found in the configs folder.")
 
@@ -111,15 +111,13 @@ def get_config_from_argparser(cls: Union[ConfigTrain, ConfigSimilarity]) -> Unio
         kwargs = vars(args); kwargs.pop("config_file")
         if cls == ConfigTrain:
             config = ConfigTrain(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
-        elif cls == ConfigSimilarity:
-            config = ConfigTrain(**kwargs)
 
     # Validate the configuration
     validate_config(config)
     return config
 
 
-def validate_config(config: Union[ConfigTrain, ConfigSimilarity]):
+def validate_config(config: ConfigTrain):
     """
     Validate the provided configuration.
 

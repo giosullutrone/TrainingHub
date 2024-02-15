@@ -110,7 +110,8 @@ if __name__ == "__main__":
                                                                                                       postprocess_function=model_template_recipe.postprocess_function,
                                                                                                       eos_token=tokenizer.eos_token,
                                                                                                       include_labels_inside_text=True,
-                                                                                                      num_proc=config.num_proc)
+                                                                                                      num_proc=config.num_proc,
+                                                                                                      dynamic_examples=config.dynamic_examples)
     try:
         _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                           split="validation", 
@@ -118,7 +119,8 @@ if __name__ == "__main__":
                                                                                           postprocess_function=model_template_recipe.postprocess_function, 
                                                                                           eos_token=tokenizer.eos_token,
                                                                                           include_labels_inside_text=True,
-                                                                                          num_proc=config.num_proc)
+                                                                                          num_proc=config.num_proc,
+                                                                                          dynamic_examples=config.dynamic_examples)
     except:
         # If you don't have a validation set available, split the training set
         assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"

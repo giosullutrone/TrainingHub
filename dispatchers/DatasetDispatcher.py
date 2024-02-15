@@ -39,7 +39,7 @@ class DatasetDispatcher:
 
         def create_text(sample: Dict, labels: bool) -> Dict: 
             if labels: sample["text"] = sample["prompts"] + sample["labels"] + eos_token
-            else: sample["text"] = sample["prompts"] 
+            else: sample["text"] = sample["prompts"]
             return sample
         
         create_dataset_support = partial(self._process_dataset, 
@@ -51,10 +51,14 @@ class DatasetDispatcher:
 
         @disable_progress_bar_wrapper
         def dynamic_examples_wrapper(samples: Dict):
-            _, examples = create_dataset_support(dataset=Dataset.from_dict({k: samples[k][0:-1] for k in samples}))
-            sample = {k: samples[k][-1] for k in samples}
-            result = self.dataset_recipe.preprocess_function(sample, examples=examples)
-            return {k: [result[k], ] for k in result}
+            num_samples = len(samples[list(samples.keys())[0]])
+            results = {}
+            for i in range(num_samples):
+                _, examples = create_dataset_support(dataset=Dataset.from_dict({k: [x for idx, x in enumerate(samples[k]) if idx!=i] for k in samples}))
+                sample = {k: samples[k][i] for k in samples}
+                result = self.dataset_recipe.preprocess_function(sample, examples=examples)
+                results = {k: [result[k], *results.get(k, [])] for k in result}
+            return results
         
         # Shuffle the dataset if requested
         if shuffle: dataset.shuffle(shuffle_seed)
@@ -67,11 +71,11 @@ class DatasetDispatcher:
         # Apply the preprocess
         if not dynamic_examples:
             # If the dataset support if fixed, we can just provide it to the preprocess function
-            dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support}, num_proc=num_proc)
+            dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support}, num_proc=num_proc, desc="Preprocessing prompts")
         else:
             # If the dataset support is dynamic, we have to call the dynamic wrapper for the example definition
             # Batch the process with batch_size equal to num_examples+1 requested and use the last value as main prompt and the others as examples
-            dataset = dataset.map(dynamic_examples_wrapper, remove_columns=dataset.column_names, num_proc=num_proc, batched=True, batch_size=num_examples+1, drop_last_batch=True)
+            dataset = dataset.map(dynamic_examples_wrapper, remove_columns=dataset.column_names, num_proc=num_proc, batched=True, batch_size=num_examples+1, drop_last_batch=True, desc="Preprocessing prompts")
 
         # Filter incorrect rows
         dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)

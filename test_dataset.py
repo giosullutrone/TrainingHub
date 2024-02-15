@@ -29,4 +29,4 @@ if __name__ == "__main__":
                                                                                                       include_labels_inside_text=True)
     
     # Logger
-    logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
+    print(f'First prompt for training set:\n{"#############".join(dataset_train["text"][0:2])}')

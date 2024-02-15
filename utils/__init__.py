@@ -4,6 +4,8 @@ from .parsers import get_config_from_argparser
 
 from collections import Counter
 from typing import List
+from datasets.utils.logging import disable_progress_bar, enable_progress_bar
+
 
 def most_common_words(words: List[str], n: int):
     # Count occurrences of each string
@@ -15,3 +17,10 @@ def most_common_words(words: List[str], n: int):
     # Extract only the words from the result
     result = [item[0] for item in most_common]
     return result
+
+def disable_progress_bar_wrapper(func):
+    def wrapper(*args, **kwargs):
+        disable_progress_bar()
+        func(*args, **kwargs)
+        enable_progress_bar()
+    return wrapper

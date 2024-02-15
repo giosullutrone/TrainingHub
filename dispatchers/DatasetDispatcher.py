@@ -2,6 +2,9 @@ from typing import Dict, Union, List, Callable, Tuple
 from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk, concatenate_datasets
 from recipes.DatasetRecipe import DatasetRecipe
 import numpy as np
+from tqdm import tqdm
+from utils import disable_progress_bar_wrapper
+from functools import partial
 
 
 class DatasetDispatcher:
@@ -19,101 +22,104 @@ class DatasetDispatcher:
         if self.dataset_recipe.preprocess_dataset: dataset = self.dataset_recipe.preprocess_dataset(dataset)
         return dataset
 
-    def _process_dataset(self,
-                         dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
-                         dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
-                         postprocess_function,
-                         eos_token: str,
-                         include_labels_inside_text: bool) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+    def _process_dataset(
+            self,
+            dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
+            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
+            postprocess_function,
+            eos_token: str,
+            include_labels_inside_text: bool,
+            examples_dynamic: bool=False,
+            num_examples: int=0, 
+            shuffle: bool=False, 
+            shuffle_seed: int=42, 
+            num_proc: Union[int, None]=None
+        ) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
+                   Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
 
         def create_text(sample: Dict, labels: bool) -> Dict: 
             if labels: sample["text"] = sample["prompts"] + sample["labels"] + eos_token
             else: sample["text"] = sample["prompts"] 
             return sample
+        
+        create_dataset_support = partial(self._process_dataset, 
+                                         dataset_support=None, 
+                                         postprocess_function=None, 
+                                         eos_token="", 
+                                         include_labels_inside_text=True, 
+                                         num_proc=None)
+
+        @disable_progress_bar_wrapper
+        def examples_dynamic_wrapper(samples: Dict):
+            _, examples = create_dataset_support(dataset=Dataset.from_dict({k: samples[k][0:-1] for k in samples}))
+            sample = {k: samples[k][-1] for k in samples}
+            result = self.dataset_recipe.preprocess_function(sample, examples=examples)
+            print(result.keys())
+            return {k: [result[k], ] for k in result}
+        
+        # Shuffle the dataset if requested
+        if shuffle: dataset.shuffle(shuffle_seed)
+
+        dataset_support = None
+        # Create the dataset support if requested
+        if num_examples > 0 and dataset_support is None and not examples_dynamic:
+            if dataset_support is None:
+                _, dataset_support = create_dataset_support(dataset.select(range(num_examples)))
+                dataset = dataset.select(range(num_examples, dataset.num_rows))
 
         # Apply the preprocess
-        dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support})
+        if not examples_dynamic:
+            # If the dataset support if fixed, we can just provide it to the preprocess function
+            dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support}, num_proc=num_proc)
+        else:
+            # If the dataset support is dynamic, we have to call the dynamic wrapper for the example definition
+            # Batch the process with batch_size equal to num_examples+1 requested and use the last value as main prompt and the others as examples
+            print("pre-dynamic", dataset, dataset.column_names)
+            dataset = dataset.map(examples_dynamic_wrapper, remove_columns=dataset.column_names, num_proc=num_proc, batched=True, batch_size=num_examples+1, drop_last_batch=True)
+            print("post-dynamic", dataset)
+
+
+        # Filter incorrect rows
+        if examples_dynamic: print(dataset)
         dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)
 
         # If provided, apply the postprocess_function to follow a specific prompt template
-        if postprocess_function is not None: dataset = dataset.map(postprocess_function)
+        if postprocess_function is not None: dataset = dataset.map(postprocess_function, num_proc=num_proc)
 
         # Join prompts and labels into "text". If we are in test mode, ignore labels for former's creation.
-        dataset = dataset.map(create_text, fn_kwargs={"labels": include_labels_inside_text})
-        return dataset
+        dataset = dataset.map(create_text, fn_kwargs={"labels": include_labels_inside_text}, num_proc=num_proc)
+        return dataset_support, dataset
 
-    def get_support_and_tuning_dataset(self, 
-                                       dataset_path: str, 
-                                       split: str=None, 
-                                       num_examples: int=0, 
-                                       postprocess_function=None,
-                                       eos_token: str="</s>",
-                                       examples_starting_index: int=0,
-                                       examples_dynamic: bool=False,
-                                       examples_seed: int=42,
-                                       include_labels_inside_text: bool=True) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
-                                                                                       Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
+    def get_support_and_tuning_dataset(
+            self, 
+            dataset_path: str, 
+            split: str=None, 
+            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
+            postprocess_function=None,
+            eos_token: str="</s>",
+            include_labels_inside_text: bool=True,
+            examples_dynamic: bool=False,
+            num_examples: int=0, 
+            shuffle: bool=False, 
+            shuffle_seed: int=42, 
+            num_proc: Union[int, None]=None
+        ) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
+                   Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
         # Load the dataset
         dataset = self._load_dataset(dataset_path, split)
-
-        if not examples_dynamic:
-            # If requested create a dataset of examples for prompting
-            if num_examples > 0: 
-                dataset_len = len(dataset)
-                dataset_support = dataset.select(range(examples_starting_index, examples_starting_index+num_examples))
-                dataset = dataset.select(range(examples_starting_index+num_examples, dataset_len))
-
-                # Process the datasets
-                dataset_support = self._process_dataset(dataset_support, 
-                                                        dataset_support=None, 
-                                                        postprocess_function=None,
-                                                        eos_token="",
-                                                        include_labels_inside_text=True)
-            else: dataset_support = None
-
-            dataset = self._process_dataset(dataset, 
-                                            dataset_support=dataset_support, 
-                                            postprocess_function=postprocess_function, 
-                                            eos_token=eos_token,
-                                            include_labels_inside_text=include_labels_inside_text)
-            return dataset_support, dataset
-        
-        datasets = []
-        for i in range(dataset.num_rows):
-            d_support = dataset.select(range(i, i+num_examples))
-            d = dataset.select(range(i+num_examples, i+num_examples+1))
-            # Process the datasets
-            dataset_support = self._process_dataset(d_support, 
-                                                    dataset_support=None, 
-                                                    postprocess_function=None,
-                                                    eos_token="",
-                                                    include_labels_inside_text=True)
-            _dataset = self._process_dataset(d, 
-                                            dataset_support=d_support, 
-                                            postprocess_function=postprocess_function, 
-                                            eos_token=eos_token,
-                                            include_labels_inside_text=include_labels_inside_text)
-            datasets.append(_dataset)
-        dataset = concatenate_datasets(dsets=datasets)
-        return None, dataset
-
-    def get_tuning_dataset(self, 
-                           dataset_path: str,
-                           split: str=None, 
-                           dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
-                           postprocess_function=None,
-                           eos_token: str="</s>",
-                           include_labels_inside_text: bool=True) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
-        # Load the dataset
-        dataset = self._load_dataset(dataset_path, split)
-
         # Process the dataset
-        dataset = self._process_dataset(dataset, 
-                                        dataset_support=dataset_support, 
-                                        postprocess_function=postprocess_function, 
-                                        eos_token=eos_token,
-                                        include_labels_inside_text=include_labels_inside_text)
-        return dataset
+        return self._process_dataset(
+            dataset=dataset,
+            dataset_support=dataset_support,
+            postprocess_function=postprocess_function,
+            eos_token=eos_token,
+            include_labels_inside_text=include_labels_inside_text,
+            examples_dynamic=examples_dynamic,
+            num_examples=num_examples,
+            shuffle=shuffle,
+            shuffle_seed=shuffle_seed,
+            num_proc=num_proc
+        )
 
     @property
     def dataset_recipe(self) -> DatasetRecipe:

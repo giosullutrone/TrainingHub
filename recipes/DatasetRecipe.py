@@ -20,7 +20,7 @@ class DatasetRecipe:
 
     def __init__(self, 
                  preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
-                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
+                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
                  dataset_response_template: Union[str, None]=None) -> None:
         if preprocess_dataset is not None: self.preprocess_dataset = preprocess_dataset
@@ -33,7 +33,7 @@ class DatasetRecipe:
     def preprocess_dataset(self, dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]:
         return dataset
     
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         return sample
 
     @property
@@ -52,7 +52,7 @@ class DefaultDatasetRecipe(DatasetRecipe): pass
 class LogiqaDatasetRecipe(DatasetRecipe):
     RESPONSE_TEMPLATE = "\nAnswer:"
 
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         choices = ["a", "b", "c", "d"]
         prompt = get_examples_lm_evaluation_harness_format(examples)
         prompt += "Passage: " + sample["context"] + "\n"
@@ -67,17 +67,17 @@ class LogiqaDatasetRecipe(DatasetRecipe):
 class MathqaDatasetRecipe(DatasetRecipe):
     RESPONSE_TEMPLATE = "\nAnswer:"
 
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         prompt = get_examples_lm_evaluation_harness_format(examples)
         prompt += f"Question: {sample['Problem']}\nOptions: {sample['options']}\nAnswer:"
-        label = {['a', 'b', 'c', 'd', 'e'].index(sample["correct"])}
+        label = str(['a', 'b', 'c', 'd', 'e'].index(sample["correct"]))
         return {"prompts": prompt, "labels": label}
 
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
                  preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
-                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
+                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
                  dataset_response_template: Union[str, None]=None) -> None:
         self.yaml_path = dataset_load.pop("yaml_path")
@@ -85,7 +85,7 @@ class YAMLDatasetRecipe(DatasetRecipe):
         if self._task._config.process_docs and not preprocess_dataset: preprocess_dataset = self._task._config.process_docs
         super().__init__(preprocess_dataset, preprocess_function, dataset_load, dataset_response_template)
 
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         try: prompt = (get_examples_lm_evaluation_harness_format(examples) if examples is not None else "") + self._task.fewshot_context(sample, 0)
         except Exception as e: print(e); return {"prompts": None, "labels": None}
         label = self._task.doc_to_target(sample)

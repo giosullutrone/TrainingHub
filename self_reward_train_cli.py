@@ -87,4 +87,17 @@ if __name__ == "__main__":
     model = ModelDispatcher(model_recipe).get_model(model_name, quantization_config, peft_config)
     # --------------------------------------------------------------------------
     
-    
+    outputs = model.generate(
+        input_ids=tokenizer.encode("[INST] This is a test, answer with a fun fact about life: [/INST]", return_tensors="pt").to(model.device),
+        generation_config=transformers.GenerationConfig(
+            max_new_tokens=100,
+            num_return_sequences=4,
+            temperature=0.6,
+            top_p=0.9,
+            do_sample=True,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    )
+    for output in outputs:
+        generated_texts = tokenizer.decode(output, skip_special_tokens=True)
+        print("\n###########\n", generated_texts)

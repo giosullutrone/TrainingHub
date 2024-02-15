@@ -21,6 +21,7 @@ def most_common_words(words: List[str], n: int):
 def disable_progress_bar_wrapper(func):
     def wrapper(*args, **kwargs):
         disable_progress_bar()
-        func(*args, **kwargs)
+        result = func(*args, **kwargs)
         enable_progress_bar()
+        return result
     return wrapper

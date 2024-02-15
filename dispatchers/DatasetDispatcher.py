@@ -54,18 +54,15 @@ class DatasetDispatcher:
             _, examples = create_dataset_support(dataset=Dataset.from_dict({k: samples[k][0:-1] for k in samples}))
             sample = {k: samples[k][-1] for k in samples}
             result = self.dataset_recipe.preprocess_function(sample, examples=examples)
-            print(result.keys())
             return {k: [result[k], ] for k in result}
         
         # Shuffle the dataset if requested
         if shuffle: dataset.shuffle(shuffle_seed)
 
-        dataset_support = None
         # Create the dataset support if requested
         if num_examples > 0 and dataset_support is None and not examples_dynamic:
-            if dataset_support is None:
-                _, dataset_support = create_dataset_support(dataset.select(range(num_examples)))
-                dataset = dataset.select(range(num_examples, dataset.num_rows))
+            _, dataset_support = create_dataset_support(dataset.select(range(num_examples)))
+            dataset = dataset.select(range(num_examples, dataset.num_rows))
 
         # Apply the preprocess
         if not examples_dynamic:
@@ -74,13 +71,9 @@ class DatasetDispatcher:
         else:
             # If the dataset support is dynamic, we have to call the dynamic wrapper for the example definition
             # Batch the process with batch_size equal to num_examples+1 requested and use the last value as main prompt and the others as examples
-            print("pre-dynamic", dataset, dataset.column_names)
             dataset = dataset.map(examples_dynamic_wrapper, remove_columns=dataset.column_names, num_proc=num_proc, batched=True, batch_size=num_examples+1, drop_last_batch=True)
-            print("post-dynamic", dataset)
-
 
         # Filter incorrect rows
-        if examples_dynamic: print(dataset)
         dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)
 
         # If provided, apply the postprocess_function to follow a specific prompt template

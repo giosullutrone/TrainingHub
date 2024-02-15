@@ -1,6 +1,7 @@
 from typing import Dict, Union, List, Callable, Tuple
-from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk
+from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk, concatenate_datasets
 from recipes.DatasetRecipe import DatasetRecipe
+import numpy as np
 
 
 class DatasetDispatcher:
@@ -47,31 +48,54 @@ class DatasetDispatcher:
                                        num_examples: int=0, 
                                        postprocess_function=None,
                                        eos_token: str="</s>",
+                                       examples_starting_index: int=0,
+                                       examples_dynamic: bool=False,
+                                       examples_seed: int=42,
                                        include_labels_inside_text: bool=True) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
                                                                                        Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
         # Load the dataset
         dataset = self._load_dataset(dataset_path, split)
 
-        # If requested create a dataset of examples for prompting
-        if num_examples > 0: 
-            dataset_len = len(dataset)
-            dataset_support = dataset.select(range(num_examples))
-            dataset = dataset.select(range(num_examples, dataset_len))
+        if not examples_dynamic:
+            # If requested create a dataset of examples for prompting
+            if num_examples > 0: 
+                dataset_len = len(dataset)
+                dataset_support = dataset.select(range(examples_starting_index, examples_starting_index+num_examples))
+                dataset = dataset.select(range(examples_starting_index+num_examples, dataset_len))
 
+                # Process the datasets
+                dataset_support = self._process_dataset(dataset_support, 
+                                                        dataset_support=None, 
+                                                        postprocess_function=None,
+                                                        eos_token="",
+                                                        include_labels_inside_text=True)
+            else: dataset_support = None
+
+            dataset = self._process_dataset(dataset, 
+                                            dataset_support=dataset_support, 
+                                            postprocess_function=postprocess_function, 
+                                            eos_token=eos_token,
+                                            include_labels_inside_text=include_labels_inside_text)
+            return dataset_support, dataset
+        
+        datasets = []
+        for i in range(dataset.num_rows):
+            d_support = dataset.select(range(i, i+num_examples))
+            d = dataset.select(range(i+num_examples, i+num_examples+1))
             # Process the datasets
-            dataset_support = self._process_dataset(dataset_support, 
+            dataset_support = self._process_dataset(d_support, 
                                                     dataset_support=None, 
                                                     postprocess_function=None,
                                                     eos_token="",
                                                     include_labels_inside_text=True)
-        else: dataset_support = None
-
-        dataset = self._process_dataset(dataset, 
-                                        dataset_support=dataset_support, 
-                                        postprocess_function=postprocess_function, 
-                                        eos_token=eos_token,
-                                        include_labels_inside_text=include_labels_inside_text)
-        return dataset_support, dataset
+            _dataset = self._process_dataset(d, 
+                                            dataset_support=d_support, 
+                                            postprocess_function=postprocess_function, 
+                                            eos_token=eos_token,
+                                            include_labels_inside_text=include_labels_inside_text)
+            datasets.append(_dataset)
+        dataset = concatenate_datasets(dsets=datasets)
+        return None, dataset
 
     def get_tuning_dataset(self, 
                            dataset_path: str,

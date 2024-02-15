@@ -213,7 +213,7 @@ class ConfigTrain:
         }
     )
     dynamic_examples: int = field(
-        default=None, 
+        default=True, 
         metadata={
             "description": "Whether to use dynamic examples for few-shot prompting or fixed ones."
         }

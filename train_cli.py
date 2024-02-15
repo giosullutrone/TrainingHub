@@ -109,17 +109,22 @@ if __name__ == "__main__":
                                                                                                       num_examples=config.num_examples,
                                                                                                       postprocess_function=model_template_recipe.postprocess_function,
                                                                                                       eos_token=tokenizer.eos_token,
-                                                                                                      include_labels_inside_text=True)
+                                                                                                      include_labels_inside_text=True,
+                                                                                                      num_proc=config.num_proc)
     try:
-        dataset_val = DatasetDispatcher(dataset_recipe).get_tuning_dataset(dataset_name, 
-                                                                           split="validation", 
-                                                                           dataset_support=dataset_support,
-                                                                           postprocess_function=model_template_recipe.postprocess_function, 
-                                                                           eos_token=tokenizer.eos_token,
-                                                                           include_labels_inside_text=True)
+        _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
+                                                                                          split="validation", 
+                                                                                          dataset_support=dataset_support,
+                                                                                          postprocess_function=model_template_recipe.postprocess_function, 
+                                                                                          eos_token=tokenizer.eos_token,
+                                                                                          include_labels_inside_text=True,
+                                                                                          num_proc=config.num_proc)
     except:
         # If you don't have a validation set available, split the training set
         assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
+        logger.info("Validation dataset not found, splitting train into two different sets.")
+        if config.dynamic_examples: logger.warning("Using dynamic examples with splitted sets currently leads to data leakage between training and validation set,\
+                                                   use with caution as the validation set will overperform.")
         dataset = dataset_train.train_test_split(test_size=config.validation_split_size)
         dataset_train, dataset_val = dataset["train"], dataset["test"]
 

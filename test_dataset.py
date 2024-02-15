@@ -15,6 +15,9 @@ logger = logging.getLogger("llm_steerability")
 
 transformers.set_seed(42)
 
+# TODO: update train_cli
+# TODO: add num_proc to config
+# TODO: generate all 8 samples
 
 if __name__ == "__main__":
     dataset_name: str = "math_qa"
@@ -26,6 +29,7 @@ if __name__ == "__main__":
                                                                                                       postprocess_function=model_template_recipe.postprocess_function,
                                                                                                       eos_token="</s>",
                                                                                                       examples_dynamic=True,
+                                                                                                      num_proc=12,
                                                                                                       include_labels_inside_text=True)
     
     # Logger

@@ -212,6 +212,12 @@ class ConfigTrain:
             "description": "Whether to train the model only on completion (i.e. text after response template) or the full prompt."
         }
     )
+    dynamic_examples: int = field(
+        default=None, 
+        metadata={
+            "description": "Whether to use dynamic examples for few-shot prompting or fixed ones."
+        }
+    )
     system_tuning: bool = field(
         default=False, 
         metadata={
@@ -222,6 +228,12 @@ class ConfigTrain:
         default=False, 
         metadata={
             "description": "Whether to use the most common words in the dataset as starting point for prompt tuning."
+        }
+    )
+    num_proc: int = field(
+        default=None, 
+        metadata={
+            "description": "How many processes to use for dataset mapping."
         }
     )
     verbose: bool = field(

@@ -2,7 +2,7 @@ import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
 from finetuners import FineTuner
-from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe
+from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe, get_examples_lm_evaluation_harness_format
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
 from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser, most_common_words
 from configs import ConfigTrain
@@ -11,8 +11,42 @@ from peft import PromptTuningConfig
 import logging
 logger = logging.getLogger("llm_steerability")
 
-
 transformers.set_seed(42)
+
+class NewsGenerationDatasetRecipe(DatasetRecipe):
+    def preprocess_function(self, sample, examples) -> Dict:
+        classes = [
+            'alt.atheism',
+            'comp.graphics',
+            'comp.os.ms-windows.misc',
+            'comp.sys.ibm.pc.hardware',
+            'comp.sys.mac.hardware',
+            'comp.windows.x',
+            'misc.forsale',
+            'rec.autos',
+            'rec.motorcycles',
+            'rec.sport.baseball',
+            'rec.sport.hockey',
+            'sci.crypt',
+            'sci.electronics',
+            'sci.med',
+            'sci.space',
+            'soc.religion.christian',
+            'talk.politics.guns',
+            'talk.politics.mideast',
+            'talk.politics.misc',
+            'talk.religion.misc'
+        ]
+
+        def get_examples(examples) -> str:
+            """
+            Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
+            """
+            if examples is None: return ""
+            return "Generate new news documents following the Examples.\n\n" + "\n\n".join([ex[:512] for ex in examples["text"]]) + "\n\n"
+        prompt = get_examples(examples)
+        prompt += f"Example:\n{sample['text']}\nTopic:{sample['label_text']}"
+        return {"prompts": prompt, "labels": ""}
 
 
 if __name__ == "__main__":
@@ -101,26 +135,27 @@ if __name__ == "__main__":
     # ### Example of a prompt:
     # "What is the result of 2 + 2? Answer: "
     # -> for LLama2 we obtain "<SYS> </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
-    dataset_name: str = config.dataset_name
-    dataset_recipe: DatasetRecipe = config.dataset_recipe
+    dataset_name: str = "SetFit/20_newsgroups"
+    dataset_recipe: DatasetRecipe = NewsGenerationDatasetRecipe()
     model_template_recipe: ModelTemplateRecipe = config.model_template_recipe
     dataset_support, dataset_train = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                                       split="train", 
-                                                                                                      num_examples=config.num_examples,
+                                                                                                      num_examples=1,
                                                                                                       postprocess_function=model_template_recipe.postprocess_function,
-                                                                                                      eos_token=tokenizer.eos_token,
+                                                                                                      eos_token="",
                                                                                                       include_labels_inside_text=True,
                                                                                                       num_proc=config.num_proc,
-                                                                                                      dynamic_examples=config.dynamic_examples)
+                                                                                                      dynamic_examples=True)
     try:
         _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                           split="validation", 
                                                                                           dataset_support=dataset_support,
+                                                                                          num_examples=1,
                                                                                           postprocess_function=model_template_recipe.postprocess_function, 
-                                                                                          eos_token=tokenizer.eos_token,
+                                                                                          eos_token="",
                                                                                           include_labels_inside_text=True,
                                                                                           num_proc=config.num_proc,
-                                                                                          dynamic_examples=config.dynamic_examples)
+                                                                                          dynamic_examples=True)
     except:
         # If you don't have a validation set available, split the training set
         assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
@@ -154,19 +189,43 @@ if __name__ == "__main__":
         model = SystemTuning.add_proxy(model, system_template=system_template, tokenizer=tokenizer)
         logger.debug(f'Added system tuning modification as requested')
     # --------------------------------------------------------------------------
-
     
+    def sample(sample):
+        old_padding_size = tokenizer.padding_side
+        tokenizer.padding_side = "left"
+        result = {"text": [tokenizer.decode(x, skip_special_tokens=True) for x in model.generate(
+            input_ids=tokenizer.encode(sample["text"], padding=False, return_tensors="pt").to(model.device),
+            generation_config=transformers.GenerationConfig(
+                num_return_sequences=4,
+                temperature=0.6,
+                top_p=0.9,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id,
+                max_new_tokens=300
+            )
+        )]}
+        tokenizer.padding_side = old_padding_size
+        return result
+
+    dataset_generated = dataset_train.select(range(10)).map(sample, desc="Generating new samples")
+
+    print(dataset_generated)
+    for t in dataset_generated["text"]:
+        print("Generated: ", t[0].split(model_template_recipe.model_response_template)[-1], "\\n")
+
+    """
     outputs = model.generate(
-        input_ids=tokenizer.encode("[INST] This is a test, answer with a fun fact about life: [/INST]", return_tensors="pt").to(model.device),
+        input_ids=tokenizer.encode("[INST] Generate new prompts following the examples.\nExample 1 Instruction: You are given a science question (easy-level) and four answer options (associated with “A”, “B”, “C”, “D”). Your task is to find the correct answer based on scientific facts, knowledge, and reasoning. Do not generate anything else apart from one of the following characters: ‘A’, ‘B, ‘C’, ‘D’. There is only one correct answer for each question. Input: Which part of a bicycle BEST moves in a circle? (A) Seat (B) Frame (C) Foot pedal (D) Kickstand Constraints: The output should be one of the following characters: ‘A’, ‘B, ‘C’, ‘D’. Example 2 Instruction: You are given a negative review and your task is to convert it to a positive review by one or more making minimal changes. Avoid changing the context of the review. Input: we stood there in shock, because we never expected this. Constraints: None. Example 3 [/INST]", return_tensors="pt").to(model.device),
         generation_config=transformers.GenerationConfig(
-            max_new_tokens=100,
             num_return_sequences=4,
             temperature=0.6,
             top_p=0.9,
             do_sample=True,
             pad_token_id=tokenizer.eos_token_id,
+            max_new_tokens=150
         )
     )
     for output in outputs:
         generated_texts = tokenizer.decode(output, skip_special_tokens=True)
         print("\n###########\n", generated_texts)
+    """

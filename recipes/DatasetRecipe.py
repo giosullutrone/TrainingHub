@@ -5,7 +5,7 @@ from lm_eval.utils import load_yaml_config
 from cookbooks import DATASET_COOKBOOK
 
 
-def get_examples_lm_evaluation_harness_format(examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> str:
+def get_examples_lm_evaluation_harness_format(examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> str:
     """
     Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
     """

@@ -16,7 +16,7 @@ def get_examples_lm_evaluation_harness_format(examples: Union[DatasetDict, Datas
 class DatasetRecipe:
     """Kwargs to give to the "load_dataset" function from "datasets" module"""
     DATASET_LOAD: Union[Dict, None] = None
-    RESPONSE_TEMPLATE: Union[str, None] = None
+    DATASET_RESPONSE_TEMPLATE: Union[str, None] = None
 
     def __init__(self, 
                  preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
@@ -28,7 +28,7 @@ class DatasetRecipe:
         self._dataset_load = {}
         if self.DATASET_LOAD is not None: self._dataset_load.update(self.DATASET_LOAD)
         if dataset_load is not None: self._dataset_load.update(dataset_load)
-        self._dataset_response_template = dataset_response_template if dataset_response_template else self.RESPONSE_TEMPLATE
+        self._dataset_response_template = dataset_response_template if dataset_response_template else self.DATASET_RESPONSE_TEMPLATE
 
     def preprocess_dataset(self, dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]:
         return dataset
@@ -50,7 +50,7 @@ class DefaultDatasetRecipe(DatasetRecipe): pass
 
 @DATASET_COOKBOOK.register()
 class LogiqaDatasetRecipe(DatasetRecipe):
-    RESPONSE_TEMPLATE = "\nAnswer:"
+    DATASET_RESPONSE_TEMPLATE = "\nAnswer:"
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         choices = ["a", "b", "c", "d"]
@@ -65,7 +65,7 @@ class LogiqaDatasetRecipe(DatasetRecipe):
     
 @DATASET_COOKBOOK.register()
 class MathqaDatasetRecipe(DatasetRecipe):
-    RESPONSE_TEMPLATE = "\nAnswer:"
+    DATASET_RESPONSE_TEMPLATE = "\nAnswer:"
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         prompt = get_examples_lm_evaluation_harness_format(examples)

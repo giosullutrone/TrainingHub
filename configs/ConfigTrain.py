@@ -2,11 +2,12 @@ from typing import Union
 from transformers import TrainingArguments
 from recipes import DatasetRecipe, ModelRecipe, TokenizerRecipe, QuantizationRecipe, ModelTemplateRecipe, PeftRecipe
 from cookbooks import DATASET_COOKBOOK, MODEL_COOKBOOK, MODEL_TEMPLATE_COOKBOOK, TOKENIZER_COOKBOOK, QUANTIZATION_COOKBOOK, PEFT_COOKBOOK
-from dataclasses import dataclass, field
+from dataclasses import field, dataclass
+from .Config import Config
 
 
 @dataclass
-class ConfigTrain:
+class ConfigTrain(Config):
     """
     Configuration class for training by CLI.
     """
@@ -27,6 +28,7 @@ class ConfigTrain:
     #   - `cookbook` (CookBook): Cookbook to use to get the `recipe` if it was specified by string. 
     #                            For example --model_recipe "MistralModelRecipe", the string "MistralModelRecipe" would be used to get the 
     #                            class from the given cookbook.
+    #   - `cls` (class): Class to instantiate with the arguments provided.
     # --------------------------------------------------------------------------
 
 
@@ -197,7 +199,8 @@ class ConfigTrain:
     training_arguments: Union[TrainingArguments, dict, None] = field(
         default=None, 
         metadata={
-            "description": "Training arguments to pass to the trainer. For more information check out transformers.TrainingArguments for available arguments."
+            "description": "Training arguments to pass to the trainer. For more information check out transformers.TrainingArguments for available arguments.",
+            "cls": TrainingArguments
         }
     )
     num_examples: int = field(

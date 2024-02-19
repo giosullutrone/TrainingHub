@@ -193,7 +193,7 @@ if __name__ == "__main__":
     def sample(sample):
         old_padding_size = tokenizer.padding_side
         tokenizer.padding_side = "left"
-        result = {"text": [tokenizer.decode(x, skip_special_tokens=True) for x in model.generate(
+        result = {"text": [tokenizer.decode(x, skip_special_tokens=True)[0] for x in model.generate(
             input_ids=tokenizer.encode(sample["text"], padding=False, return_tensors="pt").to(model.device),
             generation_config=transformers.GenerationConfig(
                 num_return_sequences=4,
@@ -207,11 +207,11 @@ if __name__ == "__main__":
         tokenizer.padding_side = old_padding_size
         return result
 
-    dataset_generated = dataset_train.select(range(10)).map(sample, desc="Generating new samples")
+    dataset_generated = dataset_train.select(range(1)).map(sample, desc="Generating new samples")
 
-    print(dataset_generated)
+    print("######################\n\n", dataset_generated["text"], "######################\n\n", dataset_generated["text"][0])
     for t in dataset_generated["text"]:
-        print("Generated: ", t[0].split(model_template_recipe.model_response_template)[-1], "\\n")
+        print("Generated: ", t.split(model_template_recipe.model_response_template)[-1], "\\n")
 
     """
     outputs = model.generate(

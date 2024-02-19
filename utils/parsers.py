@@ -3,11 +3,11 @@ from dataclasses import fields
 from typing import Union, Dict
 import importlib.util
 from ast import literal_eval
-from configs import ConfigTrain
+from configs import Config
 from transformers import TrainingArguments
 
 
-def load_config(config_path: str) -> ConfigTrain:
+def load_config(config_path: str) -> Config:
     """
     Load configuration from a Python file.
 
@@ -28,7 +28,7 @@ def load_config(config_path: str) -> ConfigTrain:
     config = getattr(config_module, "config", None)
 
     # Check if a valid Config instance is obtained
-    if config is None or not isinstance(config, ConfigTrain):
+    if config is None or not isinstance(config, Config):
         raise ValueError("Invalid configuration module or config instance not found")
 
     return config
@@ -63,7 +63,7 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
     return parser
 
 
-def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
+def get_config_from_argparser(cls: Config) -> Config:
     """
     Parse command-line arguments and generate a Config instance.
 
@@ -82,42 +82,44 @@ def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
     if config_file_path:
         # Load configuration from the specified file
         config = load_config(config_file_path)
-        args_dict = vars(args)
+        kwargs = vars(args)
 
         for field in fields(config):
-            if args_dict[field.name] is not None:
+            if kwargs[field.name] is not None:
                 if "recipe" in field.metadata:
                     # Extract recipe information from metadata
                     keywords = field.metadata["recipe"]
                     cookbook = field.metadata["cookbook"]
-                    recipe_name = args_dict[field.name]
+                    recipe_name = kwargs[field.name]
                     # Set the field with the cookbook recipe
-                    kwargs = {x: args_dict[x] for x in keywords}
+                    recipe_kwargs = {x: kwargs[x] for x in keywords}
                     for x in keywords:
-                        if isinstance(getattr(config, x), dict): kwargs[x] = {**getattr(config, x), **kwargs[x]} if kwargs[x] is not None else getattr(config, x)
-                    setattr(config, field.name, cookbook.get(recipe_name)(**kwargs))
-                elif cls == ConfigTrain and field.name == "training_arguments":
+                        if isinstance(getattr(config, x), dict): kwargs[x] = {**getattr(config, x), **recipe_kwargs[x]} if recipe_kwargs[x] is not None else getattr(config, x)
+                    setattr(config, field.name, cookbook.get(recipe_name)(**recipe_kwargs))
+                elif "cls" in field.metadata:
                     # Set training arguments
-                    if isinstance(config.training_arguments, dict): 
-                        config.training_arguments = TrainingArguments(**{**config.training_arguments, **args_dict["training_arguments"]})
-                    else: config.training_arguments = TrainingArguments(**args_dict["training_arguments"])
+                    if isinstance(getattr(config, x), dict): 
+                        setattr(config, field.name, field.metadata["cls"](**{**getattr(config, x), **kwargs[field.name]}))
+                    else: setattr(config, field.name, field.metadata["cls"](**kwargs[field.name]))
                 else:
                     # Set other fields
                     if isinstance(getattr(config, field.name), dict):
-                        setattr(config, field.name, {**getattr(config, field.name), **args_dict[field.name]})
-                    else: setattr(config, field.name, args_dict[field.name])
+                        setattr(config, field.name, {**getattr(config, field.name), **kwargs[field.name]})
+                    else: setattr(config, field.name, kwargs[field.name])
     else:
         # If no configuration file is provided, create a Config instance from command-line arguments
         kwargs = vars(args); kwargs.pop("config_file")
-        if cls == ConfigTrain:
-            config = ConfigTrain(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
+        for field in fields(config):
+            if "cls" in field.metadata:
+                kwargs[field.name] = field.metadata["cls"](**kwargs[field.name])
+        config = cls(**kwargs)
 
     # Validate the configuration
     validate_config(config)
     return config
 
 
-def validate_config(config: ConfigTrain):
+def validate_config(config: Config):
     """
     Validate the provided configuration.
 

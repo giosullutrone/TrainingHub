@@ -11,15 +11,15 @@ from utils import get_template_token_position
 
 class SystemTuning:
     @staticmethod
-    def add_proxy(model: PeftModelForCausalLM, system_template: Union[str, List[int]], tokenizer: PreTrainedTokenizer=None):
+    def add_proxy(model: PeftModelForCausalLM, model_system_template: Union[str, List[int]], tokenizer: PreTrainedTokenizer=None):
         # --------------------------------------------------------------------------
-        if isinstance(system_template, str):
+        if isinstance(model_system_template, str):
             assert tokenizer is not None, "If the template is a string, a tokenizer must be provided"
             # The user provides a string, must tokenize
-            system_token_ids = tokenizer.encode(system_template, add_special_tokens=False, return_tensors="pt")[0]
+            system_token_ids = tokenizer.encode(model_system_template, add_special_tokens=False, return_tensors="pt")[0]
         else:
             # The user already provides the token ids
-            system_token_ids = system_template
+            system_token_ids = model_system_template
         # --------------------------------------------------------------------------
         model.system_token_ids = system_token_ids
         model.system_token_ids_start_idx = None

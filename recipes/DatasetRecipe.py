@@ -1,3 +1,4 @@
+import random
 from typing import Dict, Union, Callable
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from lm_eval.tasks import ConfigurableTask
@@ -20,7 +21,7 @@ class DatasetRecipe:
 
     def __init__(self, 
                  preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
-                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]], Dict]=None, 
+                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Dict]=None, 
                  dataset_load: Union[Dict, None]=None,
                  dataset_response_template: Union[str, None]=None) -> None:
         if preprocess_dataset is not None: self.preprocess_dataset = preprocess_dataset
@@ -33,7 +34,7 @@ class DatasetRecipe:
     def preprocess_dataset(self, dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]:
         return dataset
     
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
         return sample
 
     @property
@@ -47,31 +48,45 @@ class DatasetRecipe:
 
 @DATASET_COOKBOOK.register()
 class DefaultDatasetRecipe(DatasetRecipe): pass
-
-@DATASET_COOKBOOK.register()
-class LogiqaDatasetRecipe(DatasetRecipe):
-    DATASET_RESPONSE_TEMPLATE = "\nAnswer:"
-
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
-        choices = ["a", "b", "c", "d"]
-        prompt = get_examples_lm_evaluation_harness_format(examples)
-        prompt += "Passage: " + sample["context"] + "\n"
-        prompt += "Question: " + sample["query"] + "\nChoices:\n"
-        for choice, option in zip(choices, sample["options"]):
-            prompt += f"{choice.upper()}. {option}\n"
-        prompt += "Answer:"
-        label = f' {sample["options"][int(sample["correct_option"])]}'
-        return {"prompts": prompt, "labels": label}
     
 @DATASET_COOKBOOK.register()
 class MathqaDatasetRecipe(DatasetRecipe):
     DATASET_RESPONSE_TEMPLATE = "\nAnswer:"
 
-    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
-        prompt = get_examples_lm_evaluation_harness_format(examples)
-        prompt += f"Question: {sample['Problem']}\nOptions: {sample['options']}\nAnswer:"
-        label = str(['a', 'b', 'c', 'd', 'e'].index(sample["correct"]))
-        return {"prompts": prompt, "labels": label}
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+        labels = ['a', 'b', 'c', 'd', 'e']
+        def _preprocess_prompt(s: dict):
+            return f"Question: {s['Problem']}\nOptions: {s['options']}\nAnswer:"
+        def _preprocess_label(s: dict):
+            return str(labels[labels.index(s["correct"])])
+        if examples:
+            examples = {"text": [_preprocess_prompt(x) + _preprocess_label(x) for x in examples]}
+            prompt = get_examples_lm_evaluation_harness_format(examples)
+        else: prompt = ""
+        prompt += _preprocess_prompt(sample)
+        return {"prompts": prompt, "labels": _preprocess_label(sample)}
+
+@DATASET_COOKBOOK.register()
+class WikipediaDatasetRecipe(DatasetRecipe):
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+        def corrupt_text(text, corruption_level):
+            corrupted_text = ""
+            for char in text:
+                if random.random() < corruption_level:
+                # Replace with a random character
+                    replacement = chr(random.randint(ord('a'), ord('z')))
+                    corrupted_text += replacement
+                else:
+                    corrupted_text += char
+            return corrupted_text
+        def _preprocess_prompt(s: dict):
+            return corrupt_text(s['text'], random.random() / 10)
+        if examples:
+            examples = {"text": [_preprocess_prompt(x) + x["text"] for x in examples]}
+            prompt = get_examples_lm_evaluation_harness_format(examples)
+        else: prompt = ""
+        prompt += _preprocess_prompt(sample)
+        return {"prompts": prompt, "labels": sample["text"]}
 
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
@@ -94,3 +109,50 @@ class YAMLDatasetRecipe(DatasetRecipe):
             # Check out: https://github.com/giosullutrone/lm-evaluation-harness-prompt-template/blob/main/lm_eval/api/task.py
             if self._task.OUTPUT_TYPE == "multiple_choice": label = f"{self._task.config.target_delimiter}{self._task.doc_to_choice(sample)[label]}"
         return {"prompts": str(prompt), "labels": str(label)}
+
+@DATASET_COOKBOOK.register()
+class NewsGenerationDatasetRecipe(DatasetRecipe):
+    def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]) -> Dict:
+        if examples:
+            prompt = "Generate NEW news documents following the examples.\n\n"
+            prompt += "\n\n".join(["News:\n" + ex["text"][:512] + "\nTopic:" + ex["label_text"] for ex in examples]) + "\n\n"
+        else: prompt = "Generate new news documents.\n\n"
+
+        prompt += f"News:"
+        return {"prompts": prompt, "labels": ""}
+
+@DATASET_COOKBOOK.register()
+class NewsIFTDatasetRecipe(DatasetRecipe):
+    def preprocess_function(self, sample, examples) -> Dict:
+        classes = [
+            'alt.atheism',
+            'comp.graphics',
+            'comp.os.ms-windows.misc',
+            'comp.sys.ibm.pc.hardware',
+            'comp.sys.mac.hardware',
+            'comp.windows.x',
+            'misc.forsale',
+            'rec.autos',
+            'rec.motorcycles',
+            'rec.sport.baseball',
+            'rec.sport.hockey',
+            'sci.crypt',
+            'sci.electronics',
+            'sci.med',
+            'sci.space',
+            'soc.religion.christian',
+            'talk.politics.guns',
+            'talk.politics.mideast',
+            'talk.politics.misc',
+            'talk.religion.misc'
+        ]
+
+        def get_examples(examples) -> str:
+            """
+            Given a dataset to be used for examples, returns a string containing the entries and a marker for the start and end of the examples section
+            """
+            if examples is None: return ""
+            return "Choose the topic for the given text exactly among the classes provided.\nClasses: " + ", ".join(classes) + "\n\n"
+        prompt = get_examples(examples)
+        prompt += f"Example:\n{sample['text']}\nTopic:"
+        return {"prompts": prompt, "labels": sample['label_text']}

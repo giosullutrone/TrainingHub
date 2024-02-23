@@ -4,7 +4,6 @@ from typing import Union, Dict
 import importlib.util
 from ast import literal_eval
 from configs import Config
-from transformers import TrainingArguments
 
 
 def load_config(config_path: str) -> Config:
@@ -78,41 +77,45 @@ def get_config_from_argparser(cls: Config) -> Config:
     # Parse command-line arguments
     args = parser.parse_args()
     config_file_path = args.config_file
+    kwargs = vars(args)
 
-    if config_file_path:
-        # Load configuration from the specified file
-        config = load_config(config_file_path)
-        kwargs = vars(args)
+    # Load configuration from the specified file
+    if config_file_path: config = load_config(config_file_path)
+    else: config = cls()
 
-        for field in fields(config):
-            if kwargs[field.name] is not None:
-                if "recipe" in field.metadata:
-                    # Extract recipe information from metadata
-                    keywords = field.metadata["recipe"]
-                    cookbook = field.metadata["cookbook"]
-                    recipe_name = kwargs[field.name]
-                    # Set the field with the cookbook recipe
-                    recipe_kwargs = {x: kwargs[x] for x in keywords}
-                    for x in keywords:
-                        if isinstance(getattr(config, x), dict): kwargs[x] = {**getattr(config, x), **recipe_kwargs[x]} if recipe_kwargs[x] is not None else getattr(config, x)
-                    setattr(config, field.name, cookbook.get(recipe_name)(**recipe_kwargs))
-                elif "cls" in field.metadata:
-                    # Set training arguments
-                    if isinstance(getattr(config, x), dict): 
-                        setattr(config, field.name, field.metadata["cls"](**{**getattr(config, x), **kwargs[field.name]}))
-                    else: setattr(config, field.name, field.metadata["cls"](**kwargs[field.name]))
-                else:
-                    # Set other fields
-                    if isinstance(getattr(config, field.name), dict):
-                        setattr(config, field.name, {**getattr(config, field.name), **kwargs[field.name]})
-                    else: setattr(config, field.name, kwargs[field.name])
-    else:
-        # If no configuration file is provided, create a Config instance from command-line arguments
-        kwargs = vars(args); kwargs.pop("config_file")
-        for field in fields(config):
-            if "cls" in field.metadata:
-                kwargs[field.name] = field.metadata["cls"](**kwargs[field.name])
-        config = cls(**kwargs)
+    # For each field join config and CLI fields
+    for field in fields(config):
+        # If the field has been specified
+        if kwargs[field.name]:
+            # If the field is a recipe, we need to instantiate the recipe
+            if "recipe" in field.metadata:
+                # Extract recipe information from metadata
+                recipe_name = kwargs[field.name]
+                keywords = field.metadata["recipe"]
+                cookbook = field.metadata["cookbook"]
+                # If the keywords are not given as dict but as Iterable,
+                # => Convert them to a dict.
+                if not isinstance(keywords, dict): keywords = {x: x for x in keywords}
+                # Generate the recipe kwargs
+                recipe_kwargs = {}
+                for keyword in keywords:
+                    config_field = keywords[keyword]
+                    # For each keyword, get the corresponding dict or create an empty one from the config
+                    # And merge the one provided by CLI with the config one.
+                    recipe_kwargs[keyword] = {**(getattr(config, config_field, None) if getattr(config, config_field, {}) is not None else {}), 
+                                                **(kwargs[config_field] if kwargs[config_field] is not None else {})}
+                    if not recipe_kwargs[keyword]: recipe_kwargs[keyword] = None
+                setattr(config, field.name, cookbook.get(recipe_name)(**recipe_kwargs))
+            elif "cls" in field.metadata:
+                # Set cls arguments that need initialization
+                if getattr(config, field.name, None) and isinstance(getattr(config, field.name), dict):
+                    setattr(config, field.name, field.metadata["cls"](**{**getattr(config, field.name, {}), **kwargs[field.name]}))
+                else: setattr(config, field.name, field.metadata["cls"](**kwargs[field.name]))
+            else:
+                # Set other fields
+                if getattr(config, field.name, None) and isinstance(getattr(config, field.name), dict):
+                    setattr(config, field.name, {**getattr(config, field.name, {}), **kwargs[field.name]})
+                else: setattr(config, field.name, kwargs[field.name])
 
     # Validate the configuration
     validate_config(config)

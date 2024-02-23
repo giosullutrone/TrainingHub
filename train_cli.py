@@ -70,6 +70,8 @@ if __name__ == "__main__":
         words = (" ".join(list(dataset_train["text"]))).lower().split(" ")
         peft_config.prompt_tuning_init_text = " ".join(most_common_words(words, peft_config.num_virtual_tokens))
         logger.debug(f"Prompt tuning init text set to: {peft_config.prompt_tuning_init_text}")
+
+    if config.peft_path is not None: peft_config = config.peft_path
     # --------------------------------------------------------------------------
 
 
@@ -112,6 +114,7 @@ if __name__ == "__main__":
                                                                                                       include_labels_inside_text=True,
                                                                                                       num_proc=config.num_proc,
                                                                                                       dynamic_examples=config.dynamic_examples)
+    logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
     try:
         _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                           split="validation", 
@@ -173,8 +176,8 @@ if __name__ == "__main__":
     # 
     # This should make the tuning better mimic the performances obtained for the typical prompt engineering done by hand
     if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
-        system_template = fit_system_template_tokens(dataset_train, model_template_recipe, tokenizer)
-        model = SystemTuning.add_proxy(model, system_template=system_template, tokenizer=tokenizer)
+        model_system_template = fit_system_template_tokens(dataset_train, model_template_recipe, tokenizer)
+        model = SystemTuning.add_proxy(model, model_system_template=model_system_template, tokenizer=tokenizer)
         logger.debug(f'Added system tuning modification as requested')
     # --------------------------------------------------------------------------
 

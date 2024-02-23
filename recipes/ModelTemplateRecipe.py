@@ -9,10 +9,10 @@ class ModelTemplateRecipe:
     def __init__(self, 
                  postprocess_function: Callable[[Dict], Dict]=None, 
                  model_response_template: Union[str, None]=None, 
-                 system_template: Union[str, None]=None) -> None:
+                 model_system_template: Union[str, None]=None) -> None:
         if postprocess_function is not None: self.postprocess_function = postprocess_function
         self._model_response_template = model_response_template if model_response_template is not None else self.MODEL_RESPONSE_TEMPLATE
-        self._system_template = system_template if system_template is not None else self.MODEL_SYSTEM_TEMPLATE
+        self._system_template = model_system_template if model_system_template is not None else self.MODEL_SYSTEM_TEMPLATE
     
     @staticmethod
     def postprocess_function(sample: Dict) -> Dict:
@@ -24,7 +24,7 @@ class ModelTemplateRecipe:
         return self._model_response_template
     
     @property
-    def system_template(self) -> Union[str, None]:
+    def model_system_template(self) -> Union[str, None]:
         return self._system_template
 
 

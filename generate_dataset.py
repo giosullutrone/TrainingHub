@@ -77,6 +77,7 @@ if __name__ == "__main__":
     dataset_name: str = config.generation_dataset_name
     dataset_recipe: DatasetRecipe = config.generation_dataset_recipe
     model_template_recipe: ModelTemplateRecipe = config.generation_model_template_recipe
+    print(config.generation_num_examples)
     _, dataset_generation = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                             split="train", 
                                                                                             num_examples=config.generation_num_examples,
@@ -86,7 +87,7 @@ if __name__ == "__main__":
                                                                                             num_proc=config.num_proc,
                                                                                             dynamic_examples=True)
 
-    if config.generation_training_starting_size: dataset_generation = dataset_generation.select(range(config.generation_training_starting_size))
+    if config.generation_starting_size: dataset_generation = dataset_generation.select(range(config.generation_starting_size))
 
     # Logger
     logger.debug(f'First prompt for the generation set:\n{dataset_generation["text"][0]}')
@@ -105,9 +106,14 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
     
     def sample(sample):
+        splitter = model_template_recipe.model_response_template if model_template_recipe.model_response_template is not None else dataset_recipe.dataset_response_template
         result = {"text": [tokenizer.decode(x, skip_special_tokens=True)[0] for x in 
-                           model.generate(input_ids=tokenizer.encode(sample["text"], padding=False, return_tensors="pt").to(model.device),
+                           model.generate(input_ids=tokenizer.encode(sample["text"], return_tensors="pt").to(model.device),
                                           generation_config=config.generation_config)]}
+        print(result)
         return result
 
     dataset_generated = dataset_generation.map(sample, desc="Generating new samples")
+    dataset_generated.save_to_disk(config.generation_output_path)
+    # Logger .split(splitter)[-1]
+    logger.debug(f'First prompt for the generated set:\n{dataset_generated["text"][0]}')

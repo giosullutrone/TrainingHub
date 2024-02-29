@@ -10,5 +10,5 @@ config = ConfigGenerateDataset(
         do_sample=True,
         max_new_tokens=300
     ),
-    generation_num_examples=0
+    generation_num_examples=1
 )

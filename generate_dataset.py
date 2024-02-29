@@ -2,7 +2,7 @@ import transformers
 from transformers import TrainingArguments
 from typing import Dict, Union
 from finetuners import FineTuner
-from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe, get_examples_lm_evaluation_harness_format
+from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe, get_examples_lm_evaluation_harness_format, GenerationDatasetRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
 from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser, most_common_words
 from configs import ConfigGenerateDataset
@@ -75,9 +75,8 @@ if __name__ == "__main__":
     # "What is the result of 2 + 2? Answer: "
     # -> for LLama2 we obtain "<SYS> </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
     dataset_name: str = config.generation_dataset_name
-    dataset_recipe: DatasetRecipe = config.generation_dataset_recipe
+    dataset_recipe: GenerationDatasetRecipe = config.generation_dataset_recipe
     model_template_recipe: ModelTemplateRecipe = config.generation_model_template_recipe
-    print(config.generation_num_examples)
     _, dataset_generation = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                             split="train", 
                                                                                             num_examples=config.generation_num_examples,
@@ -107,13 +106,13 @@ if __name__ == "__main__":
     
     def sample(sample):
         splitter = model_template_recipe.model_response_template if model_template_recipe.model_response_template is not None else dataset_recipe.dataset_response_template
-        result = {"text": [tokenizer.decode(x, skip_special_tokens=True)[0] for x in 
-                           model.generate(input_ids=tokenizer.encode(sample["text"], return_tensors="pt").to(model.device),
-                                          generation_config=config.generation_config)]}
-        print(result)
-        return result
+        texts = model.generate(input_ids=tokenizer.encode(sample["text"][0], return_tensors="pt").to(model.device), generation_config=config.generation_config)
+        texts = [tokenizer.decode(x, skip_special_tokens=True).split(splitter)[-1] for x in texts]
+        return {"text": texts}
 
-    dataset_generated = dataset_generation.map(sample, desc="Generating new samples")
+    dataset_generated = dataset_generation.map(sample, desc="Generating new samples", remove_columns=dataset_generation.column_names, batched=True, batch_size=1)
+    dataset_generated = dataset_generated.map(dataset_recipe.postprocess_generation_function, desc="Applying post-process to generated dataset")
     dataset_generated.save_to_disk(config.generation_output_path)
-    # Logger .split(splitter)[-1]
     logger.debug(f'First prompt for the generated set:\n{dataset_generated["text"][0]}')
+
+    

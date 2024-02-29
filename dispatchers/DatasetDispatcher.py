@@ -1,6 +1,6 @@
 from typing import Dict, Union, List, Callable, Tuple
 from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk, concatenate_datasets
-from recipes.DatasetRecipe import DatasetRecipe
+from recipes import DatasetRecipe
 from utils import disable_progress_bar_wrapper
 
 
@@ -62,7 +62,6 @@ class DatasetDispatcher:
         if not dynamic_examples or num_examples == 0:
             # If the dataset support if fixed, we can just provide it to the preprocess function
             dataset = dataset.map(self.dataset_recipe.preprocess_function, 
-                                  remove_columns=dataset.column_names, 
                                   fn_kwargs={"examples": dataset_support}, 
                                   num_proc=num_proc, 
                                   desc="Preprocessing prompts")
@@ -70,7 +69,6 @@ class DatasetDispatcher:
             # If the dataset support is dynamic, we have to call the dynamic wrapper for the example definition
             # Batch the process with batch_size equal to num_examples+1 requested and use the last value as main prompt and the others as examples
             dataset = dataset.map(self.dynamic_examples_wrapper, 
-                                  remove_columns=dataset.column_names, 
                                   num_proc=num_proc, 
                                   batched=True, 
                                   batch_size=num_examples+1, 

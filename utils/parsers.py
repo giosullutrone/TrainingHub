@@ -1,6 +1,6 @@
 import argparse
 from dataclasses import fields
-from typing import Union, Dict
+from typing import Union, Dict, Iterable, List, Set
 import importlib.util
 from ast import literal_eval
 from configs import Config
@@ -44,6 +44,13 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
     Returns:
         argparse.ArgumentParser: Argument parser populated with dataclass fields.
     """
+    is_set = set()
+
+    class IsStored(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            is_set.add(self.dest) # save to global reference
+            setattr(namespace, self.dest, values) # implementation of store_action
+
     parser = argparse.ArgumentParser(description=description)
 
     # Iterate through fields of the dataclass
@@ -57,9 +64,42 @@ def generate_argparser_from_dataclass(dataclass_type, description: str):
                 field_type = literal_eval
         field_default = field.default if field.default is not field.default_factory else None
         field_help = field.metadata.get("description", "")
-        parser.add_argument(f"--{field.name}", type=field_type, default=field_default, help=field_help)
+        parser.add_argument(f"--{field.name}", type=field_type, default=field_default, help=field_help, action=IsStored)
 
-    return parser
+    return parser, is_set
+
+
+def get_recipe_kwargs(field_name: str, recipe_keywords: Union[Dict, Iterable], config: Config, kwargs: Dict, is_set: Set):
+    # If the keywords are not given as dict but as Iterable,
+    # => Convert them to a dict.
+    if not isinstance(recipe_keywords, dict): recipe_keywords = {x: x for x in recipe_keywords}
+    # Generate the recipe kwargs
+    recipe_kwargs = {}
+    for keyword in recipe_keywords:
+        config_field = recipe_keywords[keyword]
+        # For each keyword, get the corresponding dict or create an empty one from the config
+        # And merge the one provided by CLI with the config one.
+
+        # If the field has been set by CLI then it has priority compared to config provided, else the opposite
+        recipe_args_from_config = getattr(config, config_field) if getattr(config, config_field, None) is not None else {}
+        recipe_args_from_cli = kwargs[config_field] if kwargs[config_field] is not None else {}
+
+        if field_name in is_set: recipe_kwargs[keyword] = {**recipe_args_from_config, **recipe_args_from_cli}
+        else: recipe_kwargs[keyword] = {**recipe_args_from_cli, **recipe_args_from_config}
+
+        if not recipe_kwargs[keyword]: recipe_kwargs[keyword] = None
+    return recipe_kwargs
+
+
+def get_field_args(field_name: str, config: Config, kwargs: Dict, is_set: Set):
+    if getattr(config, field_name, None) is not None:
+        if isinstance(getattr(config, field_name), dict):
+            if field_name in is_set: arg = {**getattr(config, field_name, {}), **kwargs[field_name]}
+            else: arg = {**kwargs[field_name], **getattr(config, field_name, {})}
+        elif field_name in is_set: arg = kwargs[field_name]
+        else: arg = getattr(config, field_name)
+    else: arg = kwargs[field_name]
+    return arg
 
 
 def get_config_from_argparser(cls: Config) -> Config:
@@ -70,10 +110,9 @@ def get_config_from_argparser(cls: Config) -> Config:
         Config: Configuration instance based on command-line arguments.
     """
     # Generate an argument parser for the Config dataclass
-    parser = generate_argparser_from_dataclass(cls, description="Train the model with the given configuration, be it from terminal or config file.")
+    parser, is_set = generate_argparser_from_dataclass(cls, description="Train the model with the given configuration, be it from terminal or config file.")
     # Add a specific argument for the configuration file path
     parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing base configuration. Example can be found in the configs folder.")
-
     # Parse command-line arguments
     args = parser.parse_args()
     config_file_path = args.config_file
@@ -84,39 +123,21 @@ def get_config_from_argparser(cls: Config) -> Config:
     else: config = cls()
 
     # For each field join config and CLI fields
-    for field in fields(config):
+    for field in fields(cls):
         # If the field has been specified
         if kwargs[field.name]:
             # If the field is a recipe, we need to instantiate the recipe
             if "recipe" in field.metadata:
                 # Extract recipe information from metadata
                 recipe_name = kwargs[field.name]
-                keywords = field.metadata["recipe"]
+                recipe_keywords = field.metadata["recipe"]
                 cookbook = field.metadata["cookbook"]
-                # If the keywords are not given as dict but as Iterable,
-                # => Convert them to a dict.
-                if not isinstance(keywords, dict): keywords = {x: x for x in keywords}
-                # Generate the recipe kwargs
-                recipe_kwargs = {}
-                for keyword in keywords:
-                    config_field = keywords[keyword]
-                    # For each keyword, get the corresponding dict or create an empty one from the config
-                    # And merge the one provided by CLI with the config one.
-                    recipe_kwargs[keyword] = {**(getattr(config, config_field, None) if getattr(config, config_field, {}) is not None else {}), 
-                                                **(kwargs[config_field] if kwargs[config_field] is not None else {})}
-                    if not recipe_kwargs[keyword]: recipe_kwargs[keyword] = None
-                setattr(config, field.name, cookbook.get(recipe_name)(**recipe_kwargs))
-            elif "cls" in field.metadata:
-                # Set cls arguments that need initialization
-                if getattr(config, field.name, None) and isinstance(getattr(config, field.name), dict):
-                    setattr(config, field.name, field.metadata["cls"](**{**getattr(config, field.name, {}), **kwargs[field.name]}))
-                else: setattr(config, field.name, field.metadata["cls"](**kwargs[field.name]))
+                setattr(config, field.name, cookbook.get(recipe_name)(**get_recipe_kwargs(field.name, recipe_keywords, config, kwargs, is_set)))
             else:
                 # Set other fields
-                if getattr(config, field.name, None) and isinstance(getattr(config, field.name), dict):
-                    setattr(config, field.name, {**getattr(config, field.name, {}), **kwargs[field.name]})
-                else: setattr(config, field.name, kwargs[field.name])
-
+                arg = get_field_args(field.name, config, kwargs, is_set)
+                if "cls" in field.metadata: setattr(config, field.name, field.metadata["cls"](**arg))
+                else: setattr(config, field.name, arg)
     # Validate the configuration
     validate_config(config)
     return config

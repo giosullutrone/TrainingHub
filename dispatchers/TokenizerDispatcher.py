@@ -1,4 +1,4 @@
-from recipes.TokenizerRecipe import TokenizerRecipe
+from recipes.tokenizers import TokenizerRecipe
 from transformers import PreTrainedTokenizer, AutoTokenizer
 
 

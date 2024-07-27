@@ -1,9 +1,7 @@
-from typing import Dict, Union, List, Callable, Tuple
-from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk, concatenate_datasets
-from recipes.DatasetRecipe import DatasetRecipe
-import numpy as np
-from tqdm import tqdm
-from utils import disable_progress_bar_wrapper
+from typing import Dict, Union, Tuple
+from datasets import load_dataset, DatasetDict, Dataset, IterableDatasetDict, IterableDataset, DownloadMode, load_from_disk
+from recipes.datasets import DatasetRecipe
+from utils.DatasetUtils import disable_progress_bar_wrapper
 from functools import partial
 
 
@@ -13,19 +11,21 @@ class DatasetDispatcher:
 
     def _load_dataset(self, 
                      dataset_path: str,
-                     split: str) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+                     split: str,
+                     dataset_size: Union[None, int]) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
         try: dataset = load_from_disk(dataset_path, **self.dataset_recipe.dataset_load)
         except: dataset = load_dataset(dataset_path, download_mode=DownloadMode.REUSE_CACHE_IF_EXISTS, **self.dataset_recipe.dataset_load)
 
         # Split dataset if requested
         if split is not None: dataset = dataset[split]
+        if dataset_size: dataset = dataset.select(range(dataset_size))
         if self.dataset_recipe.preprocess_dataset: dataset = self.dataset_recipe.preprocess_dataset(dataset)
         return dataset
 
     def _process_dataset(
             self,
             dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
-            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
+            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
             postprocess_function,
             eos_token: str,
             include_labels_inside_text: bool,
@@ -69,7 +69,7 @@ class DatasetDispatcher:
             dataset = dataset.select(range(num_examples, dataset.num_rows))
 
         # Apply the preprocess
-        if not dynamic_examples:
+        if not dynamic_examples or num_examples==0:
             # If the dataset support if fixed, we can just provide it to the preprocess function
             dataset = dataset.map(self.dataset_recipe.preprocess_function, remove_columns=dataset.column_names, fn_kwargs={"examples": dataset_support}, num_proc=num_proc, desc="Preprocessing prompts")
         else:
@@ -91,19 +91,20 @@ class DatasetDispatcher:
             self, 
             dataset_path: str, 
             split: str=None, 
-            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None,
-            postprocess_function=None,
-            eos_token: str="</s>",
-            include_labels_inside_text: bool=True,
-            dynamic_examples: bool=False,
+            dataset_support: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]=None, 
+            postprocess_function=None, 
+            eos_token: str="</s>", 
+            include_labels_inside_text: bool=True, 
+            dynamic_examples: bool=False, 
             num_examples: int=0, 
             shuffle: bool=False, 
             shuffle_seed: int=42, 
-            num_proc: Union[int, None]=None
+            num_proc: Union[int, None]=None, 
+            dataset_size: Union[int, None]=None
         ) -> Tuple[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None],
                    Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
         # Load the dataset
-        dataset = self._load_dataset(dataset_path, split)
+        dataset = self._load_dataset(dataset_path, split, dataset_size)
         # Process the dataset
         return self._process_dataset(
             dataset=dataset,

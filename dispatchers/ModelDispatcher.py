@@ -1,9 +1,7 @@
-import torch
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig, PreTrainedModel
 from typing import Dict, Union
 from peft import PeftModel, get_peft_model, PeftConfig
-from recipes.ModelTemplateRecipe import ModelTemplateRecipe
-from recipes.ModelRecipe import ModelRecipe
+from recipes.models import ModelRecipe
 
 
 class ModelDispatcher:

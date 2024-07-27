@@ -1,4 +1,4 @@
-from recipes.PeftRecipe import PeftRecipe
+from recipes.pefts import PeftRecipe
 from peft import PeftConfig
 
 

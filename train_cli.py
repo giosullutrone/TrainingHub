@@ -1,12 +1,15 @@
 import transformers
 from transformers import TrainingArguments
-from typing import Dict, Union
 from finetuners import FineTuner
-from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe, TokenizerRecipe, QuantizationRecipe
+from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
-from utils import SystemTuning, fit_response_template_tokens, fit_system_template_tokens, get_config_from_argparser, most_common_words
+from recipes import quantizations
+from recipes import tokenizers
+from utils import fit_response_template_tokens, most_common_words
+from configs import get_config_from_argparser
 from configs import ConfigTrain
 from peft import PromptTuningConfig
+
 
 import logging
 logger = logging.getLogger("llm_steerability")
@@ -76,12 +79,12 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
     # ### Create tokenizer and model
     # Here we create the tokenizer for the specific model
-    tokenizer_recipe: TokenizerRecipe = config.tokenizer_recipe
+    tokenizer_recipe: tokenizers = config.tokenizer_recipe
     tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(model_name)
     # Now we create the actual model
     model_recipe: ModelRecipe = config.model_recipe
     # We also initialize the quantization config (if provided)
-    quantization_recipe: QuantizationRecipe = config.quantization_recipe
+    quantization_recipe: quantizations = config.quantization_recipe
     quantization_config = QuantizationDispatcher(quantization_recipe).get_quantization_config() if quantization_recipe is not None else None
     # Note: during training, instead of providing the peft's config, you provide the path to the fine-tuned folder that will contain (if used) the trained adapter
     model = ModelDispatcher(model_recipe).get_model(model_name, quantization_config, peft_config)
@@ -93,7 +96,7 @@ if __name__ == "__main__":
     # We load the datasets from huggingface using the specific recipe.
     # Tip: For more datasets check out recipes.DatasetRecipe, if you don't find the one that you want
     # follow the dataset recipe creation guide. 
-    # TODO: Write a guide for the creation of new recipes
+    #
     # Tip: You can also use the YAML recipe to re-use any yaml config file available in lm-evaluation-harness library.
     #
     # Here we are creating a train and validation datasets with the given number of examples per prompt and
@@ -111,7 +114,8 @@ if __name__ == "__main__":
                                                                                                       eos_token=tokenizer.eos_token,
                                                                                                       include_labels_inside_text=True,
                                                                                                       num_proc=config.num_proc,
-                                                                                                      dynamic_examples=config.dynamic_examples)
+                                                                                                      dynamic_examples=config.dynamic_examples,
+                                                                                                      dataset_size=config.dataset_size)
     try:
         _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                           split="validation", 
@@ -120,7 +124,8 @@ if __name__ == "__main__":
                                                                                           eos_token=tokenizer.eos_token,
                                                                                           include_labels_inside_text=True,
                                                                                           num_proc=config.num_proc,
-                                                                                          dynamic_examples=config.dynamic_examples)
+                                                                                          dynamic_examples=config.dynamic_examples,
+                                                                                          dataset_size=config.dataset_size)
     except:
         # If you don't have a validation set available, split the training set
         assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
@@ -129,8 +134,6 @@ if __name__ == "__main__":
                                                    use with caution as the validation set will likely overperform.")
         dataset = dataset_train.train_test_split(test_size=config.validation_split_size)
         dataset_train, dataset_val = dataset["train"], dataset["test"]
-
-    if config.training_size: dataset_train = dataset_train.select(range(config.training_size))
 
     # Logger
     logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
@@ -154,27 +157,9 @@ if __name__ == "__main__":
     # for the dataset selected and model selected.
     # [It uses the model recipe's template if it is available else the dataset recipe one and finds the best token ids to use for compatibility]
     if config.completion_only: 
-        response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer)
+        response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer, dataset_fraction=0.1)
         logger.debug(f'Found the following response template tokens: {response_template}')
     else: response_template = None
-    # --------------------------------------------------------------------------
-
-
-    # --------------------------------------------------------------------------
-    # ### System template
-    # This is needed if you are using `prompt tuning` as PEFT and you want to start the prepended learned tokens after a specific
-    # set of words i.e. the system template of the model.
-    # For example:
-    # LLama2 format: <s> ... <<SYS>>  <</SYS>> ...
-    #                                ^
-    #                                | 
-    # In this position instead of at the start of the whole prompt (before even <s>)
-    # 
-    # This should make the tuning better mimic the performances obtained for the typical prompt engineering done by hand
-    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.system_tuning:
-        system_template = fit_system_template_tokens(dataset_train, model_template_recipe, tokenizer)
-        model = SystemTuning.add_proxy(model, system_template=system_template, tokenizer=tokenizer)
-        logger.debug(f'Added system tuning modification as requested')
     # --------------------------------------------------------------------------
 
 
@@ -190,7 +175,7 @@ if __name__ == "__main__":
     )
     # Note: we also specify other kwargs as they will be given to the underlying `SFTTrainer` init.
     # For more info on the available parameters, check out the documentation for trl's SFTTrainer.
-    finetuner.train(output_path, training_arguments=training_arguments, **config.finetuner_arguments)
+    finetuner.train(save_path=output_path, training_arguments=training_arguments, **config.finetuner_arguments)
 
     # We set everything to None to free up memory before the creation of new models.
     # In this example we are training only one model/dataset therefore it is not really needed.

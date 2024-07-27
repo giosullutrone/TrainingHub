@@ -1,6 +1,5 @@
-from typing import Dict
 from transformers import BitsAndBytesConfig
-from recipes.QuantizationRecipe import QuantizationRecipe
+from recipes.quantizations import QuantizationRecipe
 
 
 class QuantizationDispatcher:

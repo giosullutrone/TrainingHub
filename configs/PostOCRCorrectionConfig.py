@@ -8,25 +8,24 @@ from recipes.datasets.PostOCRCorrection import PostOCRCorrection
 
 config = ConfigTrain(
     dataset_name="PleIAs/Post-OCR-Correction",
-    dataset_recipe=PostOCRCorrection(dataset_load={"name": "english"}),
+    dataset_recipe="PostOCRCorrection",
+    dataset_load={"name": "english"},
     num_examples=0,
     model_name="mistralai/Mistral-7B-Instruct-v0.3",
     tokenizer_name="mistralai/Mistral-7B-Instruct-v0.3",
-    model_recipe=MistralModelRecipe(
-        model_load={
-            "cache_dir": "../models",
-            "use_cache": True,
-            "max_position_embeddings": 2048
-        }
-    ),
-    model_template_recipe=MistralModelTemplateRecipe(),
-    tokenizer_recipe=MistralTokenizerRecipe(
-        tokenizer_config={
-            "cache_dir": "../models",
-            "model_max_length": 2048
-        }
-    ),
-    quantization_recipe=FourBitQuantizationRecipe(),
+    model_recipe="MistralModelRecipe",
+    model_load={
+        "cache_dir": "../models",
+        "use_cache": True,
+        "max_position_embeddings": 2048
+    },
+    model_template_recipe="MistralModelTemplateRecipe",
+    tokenizer_recipe="MistralTokenizerRecipe",
+    tokenizer_config={
+        "cache_dir": "../models",
+        "model_max_length": 2048
+    },
+    quantization_recipe="FourBitQuantizationRecipe",
     training_arguments={
         "num_train_epochs": 1,
         "gradient_accumulation_steps": 1,
@@ -52,7 +51,7 @@ config = ConfigTrain(
         "logging_first_step": True,
         "output_dir": "./models"
     },
-    peft_recipe=LoRaPeftRecipe(),
+    peft_recipe="LoRaPeftRecipe",
     finetuner_arguments={
         "max_seq_length": 2048
     },

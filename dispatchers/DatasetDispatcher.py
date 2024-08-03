@@ -38,7 +38,7 @@ class DatasetDispatcher:
                    Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]]:
 
         def create_text(sample: Dict, labels: bool) -> Dict: 
-            if labels: sample["text"] = sample["prompts"] + sample["labels"] + eos_token
+            if labels: sample["text"] = sample["prompts"] + sample["labels"]
             else: sample["text"] = sample["prompts"]
             return sample
         

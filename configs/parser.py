@@ -29,7 +29,7 @@ def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
 
         for field in fields(config):
             if "recipe" in field.name:
-                config = set_recipe(config, field.name, cmd_kwargs)
+                config = set_recipe(config, field, cmd_kwargs)
                 
             elif "training_arguments" == field.name:
                 config = set_class(TrainingArguments, config, field.name, cmd_kwargs)
@@ -55,14 +55,14 @@ def join_dicts(priority: Union[Dict, None], secondary: Union[Dict, None]) -> Dic
     if not priority: priority = {}
     return {**secondary, **priority}
 
-def set_recipe(config: ConfigTrain, field: str, cmd_kwargs: Dict) -> ConfigTrain:
+def set_recipe(config: ConfigTrain, field, cmd_kwargs: Dict) -> ConfigTrain:
     # Extract recipe information from metadata
     recipe_keywords = field.metadata["recipe_keywords"]
     cookbook = field.metadata["cookbook"]
     
     # Extract information from config and cmd
-    recipe_cmd_name = cmd_kwargs[field]
-    recipe_config_name = getattr(config, field)
+    recipe_cmd_name = cmd_kwargs[field.name]
+    recipe_config_name = getattr(config, field.name)
     
     # Extract the kwargs from config and cmd
     recipe_cmd_kwargs = {x: cmd_kwargs[x] for x in recipe_keywords}
@@ -73,11 +73,11 @@ def set_recipe(config: ConfigTrain, field: str, cmd_kwargs: Dict) -> ConfigTrain
     
     # If the names do not correspond, use the name and kwargs from cmd
     if recipe_cmd_name and recipe_cmd_name != recipe_config_name:
-        setattr(config, field, cookbook.get(recipe_cmd_name)(**recipe_cmd_kwargs)); return
+        setattr(config, field.name, cookbook.get(recipe_cmd_name)(**recipe_cmd_kwargs)); return
         
     # For each recipe's keyword, join the dict from cmd and config while giving priority to cmd
     recipe_kwargs = {recipe_keyword: join_dicts(recipe_cmd_kwargs[recipe_keyword], recipe_config_kwargs[recipe_keyword]) for recipe_keyword in recipe_keywords}
-    setattr(config, field, cookbook.get(recipe_config_name)(**recipe_kwargs)); return config
+    setattr(config, field.name, cookbook.get(recipe_config_name)(**recipe_kwargs)); return config
 
 def set_class(cls, config: ConfigTrain, field: str, cmd_kwargs: Dict) -> ConfigTrain:        
     # Extract the kwargs from config and cmd

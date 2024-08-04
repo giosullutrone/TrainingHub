@@ -23,9 +23,9 @@ class DatasetDispatcher:
             if split is not None: dataset = dataset[split]
         except: 
             assert split is not None, "Trying to load from hub but no split has been defined"
-            dataset = load_dataset(dataset_path, download_mode=DownloadMode.REUSE_CACHE_IF_EXISTS, **self.dataset_recipe.dataset_load)
+            dataset = load_dataset(dataset_path, split=split, **self.dataset_recipe.dataset_load)
 
-        if dataset_size: dataset = dataset.select(range(dataset_size))
+        if dataset_size is not None and dataset_size < len(dataset): dataset = dataset.select(range(dataset_size))
         if self.dataset_recipe.preprocess_dataset: dataset = self.dataset_recipe.preprocess_dataset(dataset)
         return dataset
 
@@ -49,13 +49,13 @@ class DatasetDispatcher:
             if shuffle: dataset.shuffle(shuffle_seed)
             
             dataset = dataset.map(self.dataset_recipe.preprocess_function, 
-                                remove_columns=dataset.column_names, 
+                                fn_kwargs={"examples": None},
                                 num_proc=num_proc, desc="Preprocessing dataset")
             
             # Filter incorrect rows
             dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)
 
-            dataset_support = dataset.copy()
+            dataset_support = dataset.select(range(len(dataset)))
             
             def get_random_examples(current_index: int) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
                 indices = list(range(len(dataset)))
@@ -63,12 +63,11 @@ class DatasetDispatcher:
                 return dataset_support.select(random.sample(indices, num_examples))
             
             dataset = dataset.map(lambda x, index: self.dataset_recipe.preprocess_function(x, examples=get_random_examples(index)), 
-                                remove_columns=dataset.column_names, with_indices=True, 
-                                num_proc=num_proc, desc="Preprocessing dataset")
+                                with_indices=True, num_proc=num_proc, desc="Preprocessing dataset")
             
             def postprocess(x: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> Dict:
-                if self._tokenizer_recipe.tokenizer_system is not None: 
-                    conversation = [{"role": "system", "content": self._tokenizer_recipe.tokenizer_system}]
+                if self._dataset_recipe.dataset_system_message is not None: 
+                    conversation = [{"role": "system", "content": self._dataset_recipe.dataset_system_message}]
                 else: conversation = []
                 conversation += [
                     {"role": "user", "content": x["prompts"]},

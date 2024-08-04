@@ -6,4 +6,4 @@ from recipes.models import ModelRecipe
 
 @MODEL_COOKBOOK.register()
 class MistralModelRecipe(ModelRecipe):
-    MODEL_LOAD = {"torch_dtype": torch.bfloat16}
+    model_load = {"torch_dtype": torch.bfloat16}

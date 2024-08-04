@@ -1,5 +1,5 @@
-from transformers import TrainingArguments, PreTrainedModel, PreTrainedTokenizer
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+from transformers import PreTrainedModel, PreTrainedTokenizer
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
 from typing import Dict, Union, Sequence, List, Optional
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 
@@ -17,7 +17,7 @@ class FineTuner:
         self.dataset_validation = dataset_validation
         self.response_template = response_template
 
-    def train(self, save_path: Optional[str]=None, training_arguments: Union[TrainingArguments, None]=None, **kwargs):
+    def train(self, save_path: Optional[str]=None, training_arguments: Union[SFTConfig, None]=None, **kwargs):
         if self.response_template is not None: data_collator = DataCollatorForCompletionOnlyLM(self.response_template, tokenizer=self.tokenizer)
         else: data_collator = None
 
@@ -27,7 +27,6 @@ class FineTuner:
                             eval_dataset=self.dataset_validation,
                             data_collator=data_collator,
                             args=training_arguments,
-                            dataset_text_field="text",
                             **kwargs)
         trainer.train()
         if save_path: trainer.save_state(); trainer.save_model(save_path)

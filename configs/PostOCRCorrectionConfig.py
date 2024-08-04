@@ -2,32 +2,38 @@ from recipes.quantizations.FourBitQuantizationRecipe import FourBitQuantizationR
 from recipes.models.MistralModelRecipe import MistralModelRecipe
 from recipes.tokenizers.MistralTokenizerRecipe import MistralTokenizerRecipe
 from recipes.pefts.LoRaPeftRecipe import LoRaPeftRecipe
-from recipes.datasets.PostOCRCorrection import PostOCRCorrection
+from recipes.datasets.PostOCRCorrectionDatasetRecipe import PostOCRCorrectionDatasetRecipe
 from recipes.train import DefaultTrainRecipe
 from configs import Config
+from datasets import DownloadMode
+
 
 config = Config( 
-    dataset_recipe=PostOCRCorrection(
-        dataset_load={"name": "english"}
+    dataset_recipe=PostOCRCorrectionDatasetRecipe(
+        dataset_load={"name": "english", "download_mode": DownloadMode.REUSE_DATASET_IF_EXISTS, "cache_dir": "E:\\Studio\\Dottorato\\dataset"},
+        dataset_system_message="You are a bot specialied in OCR correction, respond to the user with the corrected OCR text." 
     ),
     model_recipe=MistralModelRecipe(
         model_load={
+            **MistralModelRecipe.model_load,
             "cache_dir": "../../models",
             "use_cache": True,
-            "max_position_embeddings": 2048
+            "max_position_embeddings": 2048,
         },
     ),
     tokenizer_recipe=MistralTokenizerRecipe(
         tokenizer_config={
+            **MistralTokenizerRecipe.tokenizer_config,
             "cache_dir": "../models",
-            "model_max_length": 2048
+            "model_max_length": 2048,
         },
-        tokenizer_system="You are a bot specialied in OCR correction, respond to the user with the corrected OCR text."        
     ),
     peft_recipe=LoRaPeftRecipe(),
     quantization_recipe=FourBitQuantizationRecipe(),
     train_recipe=DefaultTrainRecipe(
         dataset_name="PleIAs/Post-OCR-Correction",
+        training_split="train[:80%]", 
+        validation_split="train[80%:]",
         model_name="mistralai/Mistral-7B-Instruct-v0.3",
         tokenizer_name="mistralai/Mistral-7B-Instruct-v0.3",
         training_arguments={
@@ -53,9 +59,7 @@ config = Config(
             "per_device_train_batch_size": 1,
             "per_device_eval_batch_size": 2,
             "logging_first_step": True,
-            "output_dir": "./models"
-        },
-        finetuner_arguments={
+            "output_dir": "../../models",
             "max_seq_length": 2048
         },
         completion_only=True,

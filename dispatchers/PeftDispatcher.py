@@ -1,5 +1,5 @@
 from recipes.pefts import PeftRecipe
-from peft import PeftConfig
+from peft import PeftConfig, LoraConfig, PromptTuningConfig
 
 
 class PeftDispatcher:
@@ -7,7 +7,12 @@ class PeftDispatcher:
         self._peft_recipe = peft_recipe
 
     def get_peft_config(self) -> PeftConfig:
-        return self.peft_recipe.peft_config_obj(**self.peft_recipe.peft_config) 
+        peft_classes = {
+            "PeftConfig": PeftConfig,
+            "LoraConfig": LoraConfig,
+            "PromptTuningConfig": PromptTuningConfig
+        }
+        return peft_classes[self.peft_recipe.peft_config_obj](**self.peft_recipe.peft_config) 
     
     @property
     def peft_recipe(self) -> PeftRecipe:

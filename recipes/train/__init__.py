@@ -20,11 +20,6 @@ class TrainRecipe(Recipe):
     #   - `required` (bool): Whether it is required for running `train_cli.py`. 
     #                        Note: This is done instead of removing `None` from (Union[..., None]) so that we can use also
     #                              use a starting config file for common parameters (See utils.parsers.get_config_from_argparser for the code)
-    #   - `recipe_keywords` (List[str]): List of optional fields' names to use to create the recipe in case it was specified as a string.
-    #                           For example --model_recipe "MistralModelRecipe" will also use `model_load` and `model_config` fields for initialization.
-    #   - `cookbook` (CookBook): Cookbook to use to get the `recipe` if it was specified by string. 
-    #                            For example --model_recipe "MistralModelRecipe", the string "MistralModelRecipe" would be used to get the 
-    #                            class from the given cookbook.
     # --------------------------------------------------------------------------
 
 
@@ -56,7 +51,7 @@ class TrainRecipe(Recipe):
     # --------------------------------------------------------------------------
     # Training arguments
     finetuner_arguments: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for finetuner configuration. For more information check out trl.SFTTrainer for available arguments."
         }
@@ -67,10 +62,22 @@ class TrainRecipe(Recipe):
             "description": "Number of samples to limit the training dataset to (the validation_split_size of this will be taken if specified). Default: None -> No limits"
         }
     )
-    training_arguments: Optional[dict] = field(
+    training_split: Optional[str] = field(
         default=None, 
         metadata={
-            "description": "Training arguments to pass to the trainer. For more information check out transformers.TrainingArguments for available arguments."
+            "description": "Dataset split to use for training. For more information check out: https://huggingface.co/docs/datasets/en/loading"
+        }
+    )
+    validation_split: Optional[str] = field(
+        default=None, 
+        metadata={
+            "description": "Dataset split to use for validation. For more information check out: https://huggingface.co/docs/datasets/en/loading"
+        }
+    )
+    training_arguments: Optional[dict] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Training arguments to pass to the trainer. For more information check out trl.SFTConfig for available arguments."
         }
     )
     num_examples: int = field(

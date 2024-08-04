@@ -7,7 +7,7 @@ from typing import List, Tuple, Any, Optional
 from cookbooks.CookBook import CookBook
 from dataclasses import make_dataclass, field, fields, asdict
 import yaml
-from dataclasses import fields, is_dataclass
+from dataclasses import fields, is_dataclass, _MISSING_TYPE
 import os
 from typing import List
 from recipes.Recipe import Recipe
@@ -60,7 +60,7 @@ def generate_argparser_from_config(description: str):
                 # If type is dict, we make the argparse evaluate the string
                 # This converts the string '{"example": "example value"}' into the final dict
                 if field_type == dict: field_type = literal_eval
-            field_default = field.default if field.default is not None else None
+            field_default = field.default if not isinstance(field.default, _MISSING_TYPE) else (field.default_factory() if not isinstance(field.default_factory, _MISSING_TYPE) else None)
             field_help = field.metadata.get("description", "")
             parser.add_argument(f"--{field.name}", type=field_type, default=field_default, help=field_help)
 
@@ -95,7 +95,7 @@ def config_to_flat_dict(config: Config) -> dict:
     config_dict = {}
     for fi in fields(config):
         if is_dataclass(fi.type):
-            config_dict[fi.name] = fi.type.__name__
+            config_dict[fi.name] = getattr(config, fi.name).__class__.__name__
             config_dict.update(config_to_flat_dict(getattr(config, fi.name)))
         else: 
             config_dict[fi.name] = getattr(config, fi.name)

@@ -7,13 +7,13 @@ from dataclasses import dataclass, field
 @dataclass
 class ModelRecipe(Recipe):
     model_load: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for model load."
         }
     )
     model_config: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for model configuration."
         }

@@ -1,14 +1,14 @@
 import transformers
-from transformers import TrainingArguments
 from finetuners import FineTuner
 from recipes import DatasetRecipe, PeftRecipe, ModelRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
 from recipes import quantizations
 from recipes import tokenizers
-from utils import fit_response_template_tokens, most_common_words
-from configs import get_config_from_argparser
+from utils import most_common_words, get_response_template
+from configs.parser import get_config_from_argparser
 from configs import Config
 from peft import PromptTuningConfig
+from trl import SFTConfig
 
 
 import logging
@@ -23,9 +23,9 @@ if __name__ == "__main__":
     # ### Argparse
     # Here we create the config for training using the CLI.
     # Load the configuration instance using argparser
-    config: ConfigTrain = get_config_from_argparser(ConfigTrain)
+    config: Config = get_config_from_argparser()
     # Set logger to debug if verbose is requested
-    if config.verbose: logger.setLevel(logging.DEBUG)
+    if config.train_recipe.verbose: logger.setLevel(logging.DEBUG)
     else: logger.setLevel(logging.INFO)
     # --------------------------------------------------------------------------
 
@@ -33,8 +33,9 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
     # ### Training Arguments definition
     # Here we create the training arguments that will be used for our training.
-    # For more information, check out the huggingface documentation for "TrainingArguments"
-    training_arguments: TrainingArguments = config.training_arguments
+    # For more information, check out the trl documentation for "SFTConfig"
+    training_arguments: SFTConfig = SFTConfig(**{**{"dataset_text_field": "text"}, 
+                                                 **config.train_recipe.training_arguments})
     logger.debug(f"Training Arguments used: {training_arguments}")
     # --------------------------------------------------------------------------
 
@@ -42,11 +43,11 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
     # Here we define the base model we want to train.
     # Note: can be both huggingface's path or a local path
-    model_name: str = config.model_name
+    model_name: str = config.train_recipe.model_name
     logger.debug(f"Model name: {model_name}")
     # An output path where to save the final model
     #   Tip: normally at the end of the training tha weights saved are the latest but they often are not
-    #   the best. To solve this in the "TrainingArguments" we can specify "load_best_model_at_end=True"
+    #   the best. To solve this in the "SFTConfig" we can specify "load_best_model_at_end=True"
     #   So that at the end of the procedure the best weights (calculated using loss on validation set) are
     #   loaded and then saved.
     #   WARNING: In some situations the trainer may not be able to load the best model at the end
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     peft_recipe: PeftRecipe = config.peft_recipe
     peft_config = PeftDispatcher(peft_recipe).get_peft_config() if peft_recipe is not None else None
 
-    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.prompt_tuning_most_common_init:
+    if peft_recipe is not None and peft_recipe.peft_config_obj == PromptTuningConfig and config.train_recipe.prompt_tuning_most_common_init:
         dataset_train = DatasetDispatcher(config.dataset_recipe).get_tuning_dataset(config.dataset_name, 
                                                                                     split="train",
                                                                                     eos_token="",
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     # ### Create tokenizer and model
     # Here we create the tokenizer for the specific model
     tokenizer_recipe: tokenizers = config.tokenizer_recipe
-    tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(config.tokenizer_name)
+    tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(config.train_recipe.tokenizer_name)
     # Now we create the actual model
     model_recipe: ModelRecipe = config.model_recipe
     # We also initialize the quantization config (if provided)
@@ -104,33 +105,27 @@ if __name__ == "__main__":
     # ### Example of a prompt:
     # "What is the result of 2 + 2? Answer: "
     # -> for LLama2 we obtain "<SYS> ... </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
-    dataset_name: str = config.dataset_name
+    dataset_name: str = config.train_recipe.dataset_name
     dataset_recipe: DatasetRecipe = config.dataset_recipe
-    dataset_support, dataset_train = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
-                                                                                                      split="train", 
-                                                                                                      num_examples=config.num_examples,
-                                                                                                      eos_token=tokenizer.eos_token,
-                                                                                                      include_labels_inside_text=True,
-                                                                                                      num_proc=config.num_proc,
-                                                                                                      dynamic_examples=config.dynamic_examples,
-                                                                                                      dataset_size=config.dataset_size)
-    try:
-        _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
-                                                                                          split="validation", 
-                                                                                          dataset_support=dataset_support,
-                                                                                          eos_token=tokenizer.eos_token,
-                                                                                          include_labels_inside_text=True,
-                                                                                          num_proc=config.num_proc,
-                                                                                          dynamic_examples=config.dynamic_examples,
-                                                                                          dataset_size=config.dataset_size)
-    except:
-        # If you don't have a validation set available, split the training set
-        assert config.validation_split_size is not None, "No validation set is available but validation split size has not been specified"
-        logger.info("Validation dataset not found, splitting train into two different sets.")
-        if config.dynamic_examples: logger.warning("Using dynamic examples with splitted sets currently leads to small amount of data leakage between training and validation set,\
-                                                   use with caution as the validation set will likely overperform.")
-        dataset = dataset_train.train_test_split(test_size=config.validation_split_size)
-        dataset_train, dataset_val = dataset["train"], dataset["test"]
+    dataset_dispatcher = DatasetDispatcher(dataset_recipe, tokenizer_recipe)
+    
+    dataset_train = dataset_dispatcher.get_dataset(dataset_name, 
+                                                   tokenizer,
+                                                   split=config.train_recipe.training_split,
+                                                   dataset_size=config.train_recipe.dataset_size,
+                                                   num_examples=config.train_recipe.num_examples,
+                                                   shuffle=config.train_recipe.shuffle,
+                                                   shuffle_seed=config.train_recipe.shuffle_seed,
+                                                   num_proc=config.train_recipe.num_proc)
+    
+    dataset_val = dataset_dispatcher.get_dataset(dataset_name, 
+                                                 tokenizer,
+                                                 split=config.train_recipe.validation_split,
+                                                 dataset_size=config.train_recipe.dataset_size,
+                                                 num_examples=config.train_recipe.num_examples,
+                                                 shuffle=config.train_recipe.shuffle,
+                                                 shuffle_seed=config.train_recipe.shuffle_seed,
+                                                 num_proc=config.train_recipe.num_proc)
 
     # Logger
     logger.debug(f'First prompt for training set:\n{dataset_train["text"][0]}')
@@ -153,9 +148,9 @@ if __name__ == "__main__":
     # Here we are using an util function that given the specific dataset recipe and model recipe, finds the best response template
     # for the dataset selected and model selected.
     # [It uses the model recipe's template if it is available else the dataset recipe one and finds the best token ids to use for compatibility]
-    if config.completion_only: 
-        response_template = fit_response_template_tokens(dataset_train, dataset_recipe, model_template_recipe, tokenizer, dataset_fraction=0.1)
-        logger.debug(f'Found the following response template tokens: {response_template}')
+    if config.train_recipe.completion_only: 
+        response_template = get_response_template(tokenizer, dataset_recipe)
+        logger.debug(f'Found the following response template: {response_template}')
     else: response_template = None
     # --------------------------------------------------------------------------
 
@@ -168,11 +163,13 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
         dataset_train=dataset_train,
         dataset_validation=dataset_val,
-        response_template=response_template
+        response_template=response_template,
     )
     # Note: we also specify other kwargs as they will be given to the underlying `SFTTrainer` init.
     # For more info on the available parameters, check out the documentation for trl's SFTTrainer.
-    finetuner.train(save_path=output_path, training_arguments=training_arguments, **config.finetuner_arguments)
+    finetuner.train(save_path=output_path, 
+                    training_arguments=training_arguments, 
+                    **config.train_recipe.finetuner_arguments)
 
     # We set everything to None to free up memory before the creation of new models.
     # In this example we are training only one model/dataset therefore it is not really needed.

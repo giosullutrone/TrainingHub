@@ -6,7 +6,7 @@ from dataclasses import field, dataclass
 @dataclass
 class QuantizationRecipe(Recipe):
     quantization_config: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for quantization configuration."
         }

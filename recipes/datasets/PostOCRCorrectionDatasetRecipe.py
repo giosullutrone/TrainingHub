@@ -5,9 +5,7 @@ from recipes.datasets import DatasetRecipe
 
 
 @DATASET_COOKBOOK.register()
-class PostOCRCorrection(DatasetRecipe):
-    RESPONSE_TEMPLATE = "\nCorrected Text:"
-
+class PostOCRCorrectionDatasetRecipe(DatasetRecipe):
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:
         prompt = f"Text: {sample['text']}\nCorrected Text:"
         label = sample["corrected_text"]

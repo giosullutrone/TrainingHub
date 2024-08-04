@@ -1,7 +1,7 @@
 from dataclasses import fields, is_dataclass
-from typing import Union, Dict, Optional, List, Tuple
+from typing import Union, Dict, Optional, List, Tuple, Any
 from configs.parser_utils import generate_argparser_from_config
-from transformers import TrainingArguments
+from trl import SFTConfig
 from recipes.Recipe import Recipe
 from configs import Config
 from configs.parser_utils import load_config, config_to_flat_dict
@@ -37,20 +37,25 @@ def get_config_from_argparser():
     else:
         # If no configuration file is provided, create a Config instance from command-line arguments
         kwargs = vars(cmd_kwargs); kwargs.pop("config_file")
-        config = Config(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
+        config = Config(training_arguments=SFTConfig(**kwargs.pop("training_arguments")), **kwargs)
 
-    # Validate the configuration
-    validate_config(config)
     return config
 
-def join_dicts(priority: Optional[dict], secondary: Optional[dict]) -> dict:
-    if not secondary: secondary = {}
-    if not priority: priority = {}
-    return {**secondary, **priority}
+def join_values(priority: Optional[Any], secondary: Optional[Any]) -> dict:
+    assert priority is None or secondary is None or (type(priority) == type(secondary))
+    
+    if ((priority is not None and isinstance(priority, dict)) or 
+       (secondary is not None and isinstance(secondary, dict))):
+        if secondary is None: secondary = {}
+        if priority is None: priority = {}
+        return {**secondary, **priority}
+    
+    if priority is not None: return priority
+    return secondary
 
 def set_recipe(config, field, config_kwargs: dict, cmd_kwargs: dict):
     # Extract recipe information from metadata
-    recipe_keywords = field.metadata["recipe_keywords"]
+    recipe_keywords = [x.name for x in fields(field.type)]
     cookbook = field.metadata["cookbook"]
     
     # Extract information from config and cmd
@@ -67,9 +72,9 @@ def set_recipe(config, field, config_kwargs: dict, cmd_kwargs: dict):
     # If the names do not correspond, use the name and kwargs from cmd
     if recipe_cmd_name and recipe_cmd_name != recipe_config_name:
         setattr(config, field.name, cookbook.get(recipe_cmd_name)(**recipe_cmd_kwargs)); return
-        
-    # For each recipe's keyword, join the dict from cmd and config while giving priority to cmd
-    recipe_kwargs = {recipe_keyword: join_dicts(recipe_cmd_kwargs[recipe_keyword], recipe_config_kwargs[recipe_keyword]) for recipe_keyword in recipe_keywords}
+    
+    # For each recipe's keyword, join the dict from cmd and config while giving priority to cmd    
+    recipe_kwargs = {recipe_keyword: join_values(recipe_cmd_kwargs[recipe_keyword], recipe_config_kwargs[recipe_keyword]) for recipe_keyword in recipe_keywords}
     setattr(config, field.name, cookbook.get(recipe_config_name)(**recipe_kwargs)); return config
 
 def set_class(cls, config, field: str, config_kwargs: dict, cmd_kwargs: dict):        
@@ -78,20 +83,4 @@ def set_class(cls, config, field: str, config_kwargs: dict, cmd_kwargs: dict):
     cls_config_kwargs = config_kwargs[field]
     
     # Init the cls by joining the kwargs dict from cmd and config while giving priority to cmd
-    setattr(config, field, cls(**join_dicts(cls_cmd_kwargs, cls_config_kwargs))); return config
-
-def validate_config(config):
-    """
-    Validate the provided configuration.
-
-    Args:
-        config (Config): Configuration instance.
-
-    Raises:
-        ValueError: If a required field is not provided or if a recipe field is of type string.
-    """
-    for recipe in fields(config):
-        for field in [x for x in fields(recipe.type)]:
-            # Check for required fields
-            if field.metadata.get("required", True) and getattr(config, field.name) is None:
-                raise ValueError(f"{field.name} is required but not provided from config file or terminal.")
+    setattr(config, field, cls(**join_values(cls_cmd_kwargs, cls_config_kwargs))); return config

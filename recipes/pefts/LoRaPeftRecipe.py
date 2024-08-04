@@ -6,8 +6,8 @@ from recipes.pefts import PeftRecipe
 
 @PEFT_COOKBOOK.register()
 class LoRaPeftRecipe(PeftRecipe):
-    PEFT_CONFIG_OBJ = "LoRaConfig"
-    PEFT_CONFIG = {
+    peft_config_obj = "LoraConfig"
+    peft_config = {
         "lora_alpha": 16,
         "lora_dropout": 0.1,
         "r": 64,

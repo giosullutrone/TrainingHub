@@ -7,25 +7,19 @@ from dataclasses import field, dataclass
 @dataclass
 class TokenizerRecipe(Recipe):
     tokenizer_load: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for tokenizer load."
         }
     )
     tokenizer_config: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for tokenizer configuration."
         }
     )
-    tokenizer_system: Optional[str] = field(
-        default=None, 
-        metadata={
-            "description": "System messsage to use."
-        }
-    )
     tokenizer_chat_template: Optional[str] = field(
-        default=None, 
+        default=None,
         metadata={
             "description": "Chat template to use for prompt generation."
         }

@@ -9,9 +9,15 @@ from dataclasses import dataclass, field
 class DatasetRecipe(Recipe):
     """Kwargs to give to the "load_dataset" function from "datasets" module"""
     dataset_load: Optional[dict] = field(
-        default=None, 
+        default_factory=dict,
         metadata={
             "description": "Kwargs for dataset load."
+        }
+    )
+    dataset_system_message: Optional[str] = field(
+        default=None, 
+        metadata={
+            "description": "System messsage to use."
         }
     )
 

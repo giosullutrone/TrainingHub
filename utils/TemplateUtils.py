@@ -1,12 +1,12 @@
 from typing import Union, List
 import torch
 from transformers import PreTrainedTokenizer
-from recipes import ModelTemplateRecipe, DatasetRecipe
+from recipes import DatasetRecipe
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from tqdm import tqdm
 
 
-def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Union[int, None]:
+def get_template_token_position(x: torch.Tensor, token_ids: torch.Tensor) -> Optional[int]:
     token_ids_start_idx = None
     for idx in torch.where(x == token_ids[0])[0]:
         # Here we are just making sure that the token IDs match

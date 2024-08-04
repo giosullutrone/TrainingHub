@@ -1,19 +1,20 @@
-from dataclasses import fields
-from typing import Union, Dict
-from configs import ConfigTrain
-from configs.parser_utils import load_config, generate_argparser_from_dataclass
+from dataclasses import fields, field
+from typing import Union, Dict, Optional, List, Tuple
+from configs.parser_utils import load_config, generate_argparser_from_recipes
 from transformers import TrainingArguments
+from recipes.Recipe import Recipe
+from configs.parser_utils import get_config
 
 
-def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
+def get_config_from_argparser(recipes_dataclasses: List[Recipe]):
     """
     Parse command-line arguments and generate a Config instance.
 
     Returns:
         Config: Configuration instance based on command-line arguments.
     """
-    # Generate an argument parser for the Config dataclass
-    parser = generate_argparser_from_dataclass(cls, description="Train the model with the given configuration, be it from terminal or config file.")
+    # Generate an argument parser for the recipes
+    parser = generate_argparser_from_recipes(recipes_dataclasses, description="Train the model with the given configuration, be it from terminal or config file.")
     # Add a specific argument for the configuration file path
     parser.add_argument("-c", "--config_file", required=False, default=None, type=str, help="Path to the Python file containing base configuration. Example can be found in the configs folder.")
 
@@ -23,7 +24,7 @@ def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
 
     if config_file_path:
         # Load configuration from the specified file
-        config: ConfigTrain = load_config(config_file_path)
+        config: dict = load_config(config_file_path)
         # Get kwargs from cmd
         cmd_kwargs = vars(cmd)
 
@@ -43,19 +44,18 @@ def get_config_from_argparser(cls: ConfigTrain) -> ConfigTrain:
     else:
         # If no configuration file is provided, create a Config instance from command-line arguments
         kwargs = vars(cmd_kwargs); kwargs.pop("config_file")
-        if cls == ConfigTrain:
-            config = ConfigTrain(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
+        config = get_config(recipes_dataclasses)(training_arguments=TrainingArguments(**kwargs.pop("training_arguments")), **kwargs)
 
     # Validate the configuration
     validate_config(config)
     return config
 
-def join_dicts(priority: Union[Dict, None], secondary: Union[Dict, None]) -> Dict:
+def join_dicts(priority: Optional[dict], secondary: Optional[dict]) -> Dict:
     if not secondary: secondary = {}
     if not priority: priority = {}
     return {**secondary, **priority}
 
-def set_recipe(config: ConfigTrain, field, cmd_kwargs: Dict) -> ConfigTrain:
+def set_recipe(config, field, cmd_kwargs: Dict):
     # Extract recipe information from metadata
     recipe_keywords = field.metadata["recipe_keywords"]
     cookbook = field.metadata["cookbook"]
@@ -79,7 +79,7 @@ def set_recipe(config: ConfigTrain, field, cmd_kwargs: Dict) -> ConfigTrain:
     recipe_kwargs = {recipe_keyword: join_dicts(recipe_cmd_kwargs[recipe_keyword], recipe_config_kwargs[recipe_keyword]) for recipe_keyword in recipe_keywords}
     setattr(config, field.name, cookbook.get(recipe_config_name)(**recipe_kwargs)); return config
 
-def set_class(cls, config: ConfigTrain, field: str, cmd_kwargs: Dict) -> ConfigTrain:        
+def set_class(cls, config, field: str, cmd_kwargs: Dict):        
     # Extract the kwargs from config and cmd
     cls_cmd_kwargs = cmd_kwargs[field]
     cls_config_kwargs = getattr(config, field)
@@ -87,7 +87,7 @@ def set_class(cls, config: ConfigTrain, field: str, cmd_kwargs: Dict) -> ConfigT
     # Init the cls by joining the kwargs dict from cmd and config while giving priority to cmd
     setattr(config, field, cls(**join_dicts(cls_cmd_kwargs, cls_config_kwargs))); return config
 
-def validate_config(config: ConfigTrain):
+def validate_config(config):
     """
     Validate the provided configuration.
 

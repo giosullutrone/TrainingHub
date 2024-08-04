@@ -1,4 +1,3 @@
-from transformers import AutoTokenizer, PreTrainedTokenizer
 from typing import Dict, Union
 from cookbooks import TOKENIZER_COOKBOOK
 from recipes.tokenizers import TokenizerRecipe

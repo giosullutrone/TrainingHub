@@ -1,4 +1,4 @@
-from typing import Dict, Union, Callable
+from typing import Dict, Union, Callable, Optional
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 from lm_eval.tasks import ConfigurableTask
 from lm_eval.utils import load_yaml_config
@@ -10,13 +10,13 @@ from recipes.datasets import DatasetRecipe
 @DATASET_COOKBOOK.register()
 class YAMLDatasetRecipe(DatasetRecipe):
     def __init__(self, 
-                 preprocess_dataset: Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]=None, 
-                 preprocess_function: Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]], Dict]=None, 
-                 dataset_load: Union[Dict, None]=None,
-                 dataset_response_template: Union[str, None]=None) -> None:
+                 preprocess_dataset: Optional[Callable[[Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]], Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, None]]]=None, 
+                 preprocess_function: Optional[Callable[[Dict, Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]], Dict]]=None, 
+                 dataset_load: Optional[dict]=None,
+                 dataset_response_template: Optional[str]=None) -> None:
         self.yaml_path = dataset_load.pop("yaml_path")
         self._task = ConfigurableTask(config=load_yaml_config(self.yaml_path))
-        if self._task._config.process_docs and not preprocess_dataset: preprocess_dataset = self._task._config.process_docs
+        if self._task._config.process_docs and preprocess_dataset: preprocess_dataset = self._task._config.process_docs
         super().__init__(preprocess_dataset, preprocess_function, dataset_load, dataset_response_template)
 
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:

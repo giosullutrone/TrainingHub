@@ -1,7 +1,7 @@
 import transformers
 from transformers import TrainingArguments
 from finetuners import FineTuner
-from recipes import DatasetRecipe, PeftRecipe, ModelRecipe, ModelTemplateRecipe
+from recipes import DatasetRecipe, PeftRecipe, ModelRecipe
 from dispatchers import DatasetDispatcher, ModelDispatcher, PeftDispatcher, QuantizationDispatcher, TokenizerDispatcher
 from recipes import quantizations
 from recipes import tokenizers
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # ### Create tokenizer and model
     # Here we create the tokenizer for the specific model
     tokenizer_recipe: tokenizers = config.tokenizer_recipe
-    tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(model_name)
+    tokenizer = TokenizerDispatcher(tokenizer_recipe).get_tokenizer(config.tokenizer_name)
     # Now we create the actual model
     model_recipe: ModelRecipe = config.model_recipe
     # We also initialize the quantization config (if provided)
@@ -103,14 +103,12 @@ if __name__ == "__main__":
     # adapted to the template of the specific model:
     # ### Example of a prompt:
     # "What is the result of 2 + 2? Answer: "
-    # -> for LLama2 we obtain "<SYS> </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
+    # -> for LLama2 we obtain "<SYS> ... </SYS> [INST] What is the result of 2 + 2? Answer: [/INST]"
     dataset_name: str = config.dataset_name
     dataset_recipe: DatasetRecipe = config.dataset_recipe
-    model_template_recipe: ModelTemplateRecipe = config.model_template_recipe
     dataset_support, dataset_train = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                                       split="train", 
                                                                                                       num_examples=config.num_examples,
-                                                                                                      postprocess_function=model_template_recipe.postprocess_function,
                                                                                                       eos_token=tokenizer.eos_token,
                                                                                                       include_labels_inside_text=True,
                                                                                                       num_proc=config.num_proc,
@@ -120,7 +118,6 @@ if __name__ == "__main__":
         _, dataset_val = DatasetDispatcher(dataset_recipe).get_support_and_tuning_dataset(dataset_name, 
                                                                                           split="validation", 
                                                                                           dataset_support=dataset_support,
-                                                                                          postprocess_function=model_template_recipe.postprocess_function, 
                                                                                           eos_token=tokenizer.eos_token,
                                                                                           include_labels_inside_text=True,
                                                                                           num_proc=config.num_proc,

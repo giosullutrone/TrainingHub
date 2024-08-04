@@ -3,3 +3,4 @@ from .models import *
 from .pefts import *
 from .quantizations import *
 from .tokenizers import *
+from .train import *

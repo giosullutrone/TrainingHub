@@ -1,20 +1,16 @@
-from typing import Any, Dict, Union
+from typing import Optional
+from recipes.Recipe import Recipe
 from cookbooks import QUANTIZATION_COOKBOOK
+from dataclasses import field, dataclass
 
-
-class QuantizationRecipe:
-    QUANTIZATION_CONFIG: Union[Dict, None] = None
-
-    def __init__(self, 
-                 quantization_config: Union[Dict, None]=None) -> None:
-        self._quantization_config = {}
-        if self.QUANTIZATION_CONFIG is not None: self._quantization_config.update(self.QUANTIZATION_CONFIG)
-        if quantization_config is not None: self._quantization_config.update(quantization_config)
-    
-    @property
-    def quantization_config(self) -> Dict:
-        return self._quantization_config
-
+@dataclass
+class QuantizationRecipe(Recipe):
+    quantization_config: Optional[dict] = field(
+        default=None, 
+        metadata={
+            "description": "Kwargs for quantization configuration."
+        }
+    )
 
 @QUANTIZATION_COOKBOOK.register()
 class DefaultQuantizationRecipe(QuantizationRecipe): pass

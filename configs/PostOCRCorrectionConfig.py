@@ -1,8 +1,7 @@
 from recipes.quantizations.FourBitQuantizationRecipe import FourBitQuantizationRecipe
-from recipes.models.MistralModelRecipe import MistralModelRecipe, MistralModelTemplateRecipe
+from recipes.models.MistralModelRecipe import MistralModelRecipe
 from recipes.tokenizers.MistralTokenizerRecipe import MistralTokenizerRecipe
 from recipes.pefts.LoRaPeftRecipe import LoRaPeftRecipe
-from configs.ConfigTrain import ConfigTrain
 from recipes.datasets.PostOCRCorrection import PostOCRCorrection
 
 
@@ -19,7 +18,6 @@ config = ConfigTrain(
         "use_cache": True,
         "max_position_embeddings": 2048
     },
-    model_template_recipe="MistralModelTemplateRecipe",
     tokenizer_recipe="MistralTokenizerRecipe",
     tokenizer_config={
         "cache_dir": "../models",

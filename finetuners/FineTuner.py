@@ -17,7 +17,7 @@ class FineTuner:
         self.dataset_validation = dataset_validation
         self.response_template = response_template
 
-    def train(self, save_path: Union[str, None]=None, training_arguments: Union[TrainingArguments, None]=None, **kwargs):
+    def train(self, save_path: Optional[str]=None, training_arguments: Union[TrainingArguments, None]=None, **kwargs):
         if self.response_template is not None: data_collator = DataCollatorForCompletionOnlyLM(self.response_template, tokenizer=self.tokenizer)
         else: data_collator = None
 

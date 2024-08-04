@@ -1,6 +1,6 @@
 from transformers import TrainingArguments, PreTrainedModel, PreTrainedTokenizer
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
-from typing import Dict, Union, Sequence, List
+from typing import Dict, Union, Sequence, List, Optional
 from datasets import DatasetDict, Dataset, IterableDatasetDict, IterableDataset
 
 

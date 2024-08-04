@@ -4,6 +4,8 @@ from recipes.Recipe import Recipe
 from cookbooks import DATASET_COOKBOOK
 from dataclasses import dataclass, field
 
+
+@dataclass
 class DatasetRecipe(Recipe):
     """Kwargs to give to the "load_dataset" function from "datasets" module"""
     dataset_load: Optional[dict] = field(

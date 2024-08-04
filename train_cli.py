@@ -7,7 +7,7 @@ from recipes import quantizations
 from recipes import tokenizers
 from utils import fit_response_template_tokens, most_common_words
 from configs import get_config_from_argparser
-from configs import ConfigTrain
+from configs import Config
 from peft import PromptTuningConfig
 
 

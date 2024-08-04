@@ -6,10 +6,15 @@ from ast import literal_eval
 from typing import List, Tuple, Any, Optional
 from cookbooks.CookBook import CookBook
 from dataclasses import make_dataclass, field, fields, asdict
-from recipes import DatasetRecipe, ModelRecipe, TokenizerRecipe, PeftRecipe, QuantizationRecipe, TrainRecipe
+import yaml
+from dataclasses import fields, is_dataclass
+import os
+from typing import List
+from recipes.Recipe import Recipe
+from configs import Config
 
 
-def camel_to_snake(camel_string: str):
+def camel_to_snake(camel_string: str) -> str:
     """
     Convert camelCase string to snake_case string.
 
@@ -27,7 +32,7 @@ def camel_to_snake(camel_string: str):
             result += char.lower()
     return result
 
-def generate_argparser_from_recipes(recipe_dataclasses: List[object], description: str):
+def generate_argparser_from_config(description: str):
     """
     Generate an argparse.ArgumentParser based on the fields of a dataclass.
 
@@ -40,13 +45,13 @@ def generate_argparser_from_recipes(recipe_dataclasses: List[object], descriptio
     """
     parser = argparse.ArgumentParser(description=description)
 
-    for recipe_dataclass in recipe_dataclasses:
-        parser.add_argument(f"--{camel_to_snake(recipe_dataclass.__name__)}", 
+    for recipe_dataclass in [x for x in fields(Config)]:
+        parser.add_argument(f"--{recipe_dataclass.name}", 
                             type=str, default=None, 
-                            help="Recipe's name from cookbook")
+                            help="Recipe's name from cookbook.")
         
         # Iterate through fields of the dataclass
-        for field in fields(recipe_dataclass):
+        for field in fields(recipe_dataclass.type):
             field_type = field.type
             # Handle Optional types
             if hasattr(field_type, "__origin__") and field_type.__origin__ is Optional:
@@ -61,7 +66,7 @@ def generate_argparser_from_recipes(recipe_dataclasses: List[object], descriptio
 
     return parser
 
-def load_config(config_path: str, recipe_dataclasses: List[Tuple[object, bool, CookBook]]):
+def load_config(config_path: str) -> Config:
     """
     Load configuration from a Python file.
 
@@ -82,71 +87,16 @@ def load_config(config_path: str, recipe_dataclasses: List[Tuple[object, bool, C
     config = getattr(config_module, "config", None)
 
     # Check if a valid Config instance is obtained
-    if config is None or not isinstance(config, dict):
+    if config is None or not isinstance(config, Config):
         raise ValueError("Invalid configuration or config instance not found")
-
-    config = get_config(recipe_dataclasses)(**config)
     return config
 
-def get_config(recipe_dataclasses: List[Tuple[object, bool, CookBook]]):
-    fis = []
-    for recipe, required, cookbook in recipe_dataclasses:
-        fis += [(x.name, x) for x in fields(recipe)]
-        fis += [(camel_to_snake(recipe.__name__), field(default=None, metadata = {"required": required, 
-                                                                                  "description": "Recipe's name from cookbook",
-                                                                                  "cookbook": cookbook, 
-                                                                                  "recipe_keywords": fields(recipe)}))]
-    return make_dataclass("Config", fields=fis)
-
-
-import yaml
-from dataclasses import fields, is_dataclass
-
-def create_config_file(file_name, recipe_dataclasses: List[object]):
-    """
-    Creates a file with the given name and writes its contents to it in JSON format.
-
-    Args:
-        file_name (str): The name of the file.
-        dataclass_instance (MyClass): An instance of MyClass that contains the data to be written.
-    """
-
-    # Get the path of the parent directory
-    parent_dir = os.path.dirname(os.path.dirname(__file__))
-
-    # Construct the full path to the target folder
-    target_folder_path = os.path.join(parent_dir, 'recipes', 'train')
-
-    # Create the target folder if it doesn't exist
-    if not os.path.exists(target_folder_path):
-        os.makedirs(target_folder_path)
-    
-    # Get the full path of the file
-    file_path = os.path.join(target_folder_path, file_name)
-        
-    dataclass_instance = get_config([(x, False, None) for x in recipe_dataclasses])
-        
-    if not is_dataclass(dataclass_instance):
-        raise ValueError("Provided instance is not a dataclass")
-    
-    dataclass_dict = {}
-    
-    for field in fields(dataclass_instance):
-        field_info = {
-            "description": field.metadata.get("description", "No description provided"),
-            "default": field.default if field.default != field.default_factory else "No default value"
-        }
-        dataclass_dict[field.name] = field_info
-
-    with open(file_path, 'w') as yaml_file:
-        yaml.dump(dataclass_dict, yaml_file, default_flow_style=False)
-
-
-if __name__ == "__main__":
-    create_config_file("config.yaml", 
-                       recipe_dataclasses=[DatasetRecipe, 
-                                           ModelRecipe, 
-                                           TokenizerRecipe, 
-                                           PeftRecipe, 
-                                           QuantizationRecipe, 
-                                           TrainRecipe])
+def config_to_flat_dict(config: Config) -> dict:
+    config_dict = {}
+    for fi in fields(config):
+        if is_dataclass(fi.type):
+            config_dict[fi.name] = fi.type.__name__
+            config_dict.update(config_to_flat_dict(getattr(config, fi.name)))
+        else: 
+            config_dict[fi.name] = getattr(config, fi.name)
+    return config_dict

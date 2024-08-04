@@ -53,17 +53,18 @@ class DatasetDispatcher:
                                 num_proc=num_proc, desc="Preprocessing dataset")
             
             # Filter incorrect rows
-            dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None)
+            dataset = dataset.filter(lambda x: x["prompts"] is not None and x["labels"] is not None, desc="Filtering 'None' rows")
 
-            dataset_support = dataset.select(range(len(dataset)))
-            
-            def get_random_examples(current_index: int) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
-                indices = list(range(len(dataset)))
-                indices.remove(current_index)
-                return dataset_support.select(random.sample(indices, num_examples))
-            
-            dataset = dataset.map(lambda x, index: self.dataset_recipe.preprocess_function(x, examples=get_random_examples(index)), 
-                                with_indices=True, num_proc=num_proc, desc="Preprocessing dataset")
+            if num_examples > 0:
+                dataset_support = dataset.select(range(len(dataset)))
+                
+                def get_random_examples(current_index: int) -> Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]:
+                    indices = list(range(len(dataset)))
+                    indices.remove(current_index)
+                    return dataset_support.select(random.sample(indices, num_examples))
+                
+                dataset = dataset.map(lambda x, index: self.dataset_recipe.preprocess_function(x, examples=get_random_examples(index)), 
+                                    with_indices=True, num_proc=num_proc, desc="Adding few-shot examples to the prompts")
             
             def postprocess(x: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset]) -> Dict:
                 if self._dataset_recipe.dataset_system_message is not None: 
@@ -82,7 +83,7 @@ class DatasetDispatcher:
             
             dataset = dataset.map(postprocess, 
                                 remove_columns=dataset.column_names, 
-                                num_proc=num_proc, desc="Preprocessing dataset")
+                                num_proc=num_proc, desc="Postprocessing dataset")
             
             return dataset
 

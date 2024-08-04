@@ -18,7 +18,6 @@ config = Config(
             **MistralModelRecipe.model_load,
             "cache_dir": "../../models",
             "use_cache": True,
-            "max_position_embeddings": 2048,
         },
     ),
     tokenizer_recipe=MistralTokenizerRecipe(
@@ -42,8 +41,8 @@ config = Config(
             "optim": "adamw_torch",
             "learning_rate": 1e-5,
             "weight_decay": 0.001,
-            "fp16": True,
-            "bf16": False,
+            "fp16": False,
+            "bf16": True,
             "tf32": False,
             "max_grad_norm": 0.3,
             "max_steps": -1,
@@ -51,20 +50,22 @@ config = Config(
             "group_by_length": True,
             "lr_scheduler_type": "cosine",
             "eval_strategy": "steps",
-            "logging_steps": 0.1,
-            "eval_steps": 0.1,
-            "save_steps": 0.1,
+            "logging_steps": 0.25,
+            "eval_steps": 0.25,
+            "save_steps": 0.25,
             "load_best_model_at_end": False,
             "save_total_limit": 1,
             "per_device_train_batch_size": 1,
             "per_device_eval_batch_size": 2,
             "logging_first_step": True,
-            "output_dir": "../../models",
-            "max_seq_length": 2048
+            "output_dir": "E:\\Studio\\Dottorato\\models",
+            "max_seq_length": 2048,
+            "packing": False
         },
         completion_only=True,
         num_proc=12,
         shuffle=True,
         shuffle_seed=42,
+        dataset_size=1000
     )
 )

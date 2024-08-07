@@ -10,6 +10,6 @@ class PostOCRCorrectionDatasetRecipe(DatasetRecipe):
     tik = tiktoken.get_encoding("cl100k_base")
     
     def preprocess_function(self, sample: Dict, examples: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset, dict, None]) -> Dict:        
-        prompt = f"Text: {sample['text']}\nCorrected Text:"
+        prompt = f"Text: {sample['text'][:int(1024 * 3)]}\nCorrected Text:"
         label = sample["corrected_text"]
-        return {"prompts": prompt[:int(1024 * 3)], "labels": label[:int(1024 * 3)]}
+        return {"prompts": prompt, "labels": label[:int(1024 * 3)]}

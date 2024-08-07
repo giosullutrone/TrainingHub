@@ -8,9 +8,11 @@ from recipes.pefts import PeftRecipe
 class LoRaPeftRecipe(PeftRecipe):
     peft_config_obj = "LoraConfig"
     peft_config = {
-        "lora_alpha": 16,
-        "lora_dropout": 0.1,
-        "r": 64,
+        "r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
         "bias": "none",
         "task_type": "CAUSAL_LM",
+        "target_modules": "all-linear",
+        "modules_to_save": None,
     }

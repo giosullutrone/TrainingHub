@@ -1,3 +1,12 @@
-# LLMSteerability
-## Project objectives and Innovation potential 
-Optimizing Large Language Models (LLMs), particularly state-of-the-art ones, necessitates substantial investments in computational resources and the acquisition of extensive datasets. In response, prompt engineering has emerged as a widely embraced and effective strategy, leveraging the inherent in-context-learning (ICL) capabilities of models to tailor them for specific tasks. Recent advancements highlight the implicit fine-tuning nature within in-context learning, quantifying the correlation between additional training and a task-specific description provided to the model in natural language. In this context, our primary objective is to create a dedicated framework expressly designed to autonomously assess the theoretical efficacy of in-context learning in generic language models. This framework aims to introduce a robust metric, enabling researchers to evaluate and compare models based on their adaptability to tasks not encountered during the training phase. By significantly reducing dependence on expensive, complex, and time-consuming fine-tuning procedures for novel problems, our initiative plays a role in democratizing access to Large Language Models and expediting research progress.
+# OCR training
+Make sure to change the directories in '.\configs\PostOCRCorrectionConfig.py'
+
+python .\train_cli.py --config_file .\configs\PostOCRCorrectionConfig.py
+
+# OCR validation
+Make sure to change the directories in '.\ocr_evaluation.py' 
+
+python .\evaluation.py
+
+# Proof-of-Concept model
+https://drive.google.com/file/d/1ZJf2KgaYpUMpia7G6HLCkqpqM2j8tisY/view?usp=sharing
